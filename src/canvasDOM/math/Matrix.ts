@@ -3,7 +3,7 @@
  * 用于模拟多种数据
  */
 export default class Matrix{
-    private data:[number,number,number,number,number,number]
+    protected data:[number,number,number,number,number,number]
     constructor(a:number = 0,b:number = 0,c:number = 0,d:number = 0,e:number = 0,f:number = 0){
         this.data = [a,b,c,d,e,f];
     }

@@ -99,6 +99,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const Matrix_1 = __webpack_require__(/*! ./Matrix */ "./src/canvasDOM/math/Matrix.ts");
 /**
  * 矩形盒子模型
+ * [x,y,width,height]
  */
 let pool = [];
 class Box extends Matrix_1.default {
@@ -135,7 +136,8 @@ class Box extends Matrix_1.default {
     setBox(x = 0, y = 0, width = 0, height = 0) {
         this.setMatrix(x, y, width, height);
     }
-    pushIntoPool() {
+    /**回收 */
+    release() {
         this.setMatrix();
         pool.push(this);
     }
@@ -162,22 +164,6 @@ class Box extends Matrix_1.default {
      * @param box
      */
     dirtyRect(box) {
-        // let letf = Point.createPiont(
-        //     Math.min(this.x, box.x),
-        //     Math.min(this.y, box.y)
-        // );
-        // let right = Point.createPiont(
-        //     Math.max(this.x + this.width, box.x + box.width),
-        //     Math.max(this.y + this.height, box.y + box.height)
-        // )
-        // let resBox = Box.createBox(
-        //     letf.x,
-        //     letf.y,
-        //     right.x - letf.x,
-        //     right.y - letf.y
-        // );
-        // letf.pushIntoPool();
-        // right.pushIntoPool();
         return Box.dirtyRect(this, box);
     }
     /**判断两个矩形是否有相交(碰撞) */
@@ -187,18 +173,25 @@ class Box extends Matrix_1.default {
             Box1.y + Box1.height > Box2.y &&
             Box2.y + Box2.height > Box1.y;
     }
+    /**判断点是否在改矩形中 */
+    static pointInside(box, point) {
+        return box.x <= point.x &&
+            box.y <= point.y &&
+            box.x + box.width >= point.x &&
+            box.y + box.height >= point.y;
+    }
     /**工厂函数 */
     static createBox(x = 0, y = 0, width = 0, height = 0) {
         let box = pool.pop() || new Box();
         box.setBox(x, y, width, height);
         return box;
     }
-    /**获取刚好包围两个盒子的盒子 */
+    /**获取刚好包围多个盒子的大盒子 */
     static dirtyRect(...box) {
-        let x0 = Math.min.apply(undefined, box.map((v) => v.x));
-        let y0 = Math.min.apply(undefined, box.map((v) => v.y));
-        let x1 = Math.max.apply(undefined, box.map((v) => v.x + v.width));
-        let y1 = Math.max.apply(undefined, box.map((v) => v.y + v.height));
+        let x0 = Math.min(...box.map((v) => v.x));
+        let y0 = Math.min(...box.map((v) => v.y));
+        let x1 = Math.max(...box.map((v) => v.x + v.width));
+        let y1 = Math.max(...box.map((v) => v.y + v.height));
         return Box.createBox(x0, y0, x1 - x0, y1 - y0);
     }
 }
@@ -217,7 +210,10 @@ exports.default = Box;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-/**矩阵数据结构 */
+/**
+ * 矩阵数据结构
+ * 用于模拟多种数据
+ */
 class Matrix {
     constructor(a = 0, b = 0, c = 0, d = 0, e = 0, f = 0) {
         this.data = [a, b, c, d, e, f];

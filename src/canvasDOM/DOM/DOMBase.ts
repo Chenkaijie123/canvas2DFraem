@@ -91,6 +91,8 @@ export abstract class DOMBase {
             alpha:1,
             width:0,
             height:0,
+            anchorX:0,
+            anchorY:0,
         }
         this.reRender = true;
         this.listenerMap = {};
@@ -117,6 +119,8 @@ export interface DOMStyleBase{
     alpha:number
     width:number
     height:number
+    anchorX:number
+    anchorY:number
 }
 
 // interface DOMStyleBaseKeyOf{
