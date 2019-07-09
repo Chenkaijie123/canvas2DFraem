@@ -1,5 +1,20 @@
 import Matrix from "./Matrix"
 import {DOMStyleBase} from "../DOM/DOMBase"
+const anglePI = Math.PI * 180;
+function sin(r:number){
+    let angle = r == 0?0:anglePI / r
+    return Math.sin(angle);
+}
+
+function cos(r:number){
+    let angle = r == 0?0:anglePI / r
+    return Math.cos(angle);
+}
+
+function tan(r:number){
+    let angle = r == 0?0:anglePI / r
+    return Math.tan(angle);
+}
 /**
  * 装换矩阵
  * a 水平缩放绘图
@@ -9,18 +24,7 @@ import {DOMStyleBase} from "../DOM/DOMBase"
  * e 水平移动绘图
  * f 垂直移动绘图
  */
-const anglePI = Math.PI * 180;
-function sin(r:number){
-    return Math.sin(anglePI / r);
-}
-
-function cos(r:number){
-    return Math.cos(anglePI / r);
-}
-
-function tan(r:number){
-    return Math.tan(anglePI / r);
-}
+let pool:Array<TransformMatrix> = []
 export default class TransformMatrix extends Matrix{
     public scaleX:number
     public scaleY:number
@@ -36,7 +40,14 @@ export default class TransformMatrix extends Matrix{
     }
 
     public setByStyle(style:DOMStyleBase):void{
+        this.translate(style.x + style.anchorX,style.y + style.anchorY)
+            .scale(style.scaleX,style.scaleY)
+            .rotate(style.rotate)
+            .skew(style.skewX,style.skewY)
+    }
 
+    public value():[number,number,number,number,number,number]{
+        return this.data;
     }
 
     /**
@@ -85,6 +96,12 @@ export default class TransformMatrix extends Matrix{
         mx[2] *= y;
         mx[3] *= y;
         return this;
+    }
+
+    public static createTransFormMatrix(scaleX = 1,skewX = 0,skewY = 0,scaleY = 1,offsetX = 0,offsetY = 0):TransformMatrix{
+        let Matrix :TransformMatrix= pool.pop() || new TransformMatrix();
+        Matrix.setTransformMatrix(scaleX,skewX,skewY,scaleY,offsetX,offsetY);
+        return Matrix;
     }
 
 }

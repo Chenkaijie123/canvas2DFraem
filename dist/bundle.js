@@ -86,120 +86,6 @@
 /************************************************************************/
 /******/ ({
 
-/***/ "./src/canvasDOM/math/Box.ts":
-/*!***********************************!*\
-  !*** ./src/canvasDOM/math/Box.ts ***!
-  \***********************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Matrix_1 = __webpack_require__(/*! ./Matrix */ "./src/canvasDOM/math/Matrix.ts");
-/**
- * 矩形盒子模型
- * [x,y,width,height]
- */
-let pool = [];
-class Box extends Matrix_1.default {
-    get width() {
-        return this.c;
-    }
-    set width(v) {
-        this.c = v;
-    }
-    get height() {
-        return this.d;
-    }
-    set height(v) {
-        this.d = v;
-    }
-    get x() {
-        return this.a;
-    }
-    set x(v) {
-        this.a = v;
-    }
-    get y() {
-        return this.b;
-    }
-    set y(v) {
-        this.b = v;
-    }
-    get value() {
-        return [this.a, this.b, this.c, this.d];
-    }
-    constructor(x = 0, y = 0, width = 0, height = 0) {
-        super(x, y, width, height);
-    }
-    setBox(x = 0, y = 0, width = 0, height = 0) {
-        this.setMatrix(x, y, width, height);
-    }
-    /**回收 */
-    release() {
-        this.setMatrix();
-        pool.push(this);
-    }
-    /**
-     * 获取两个盒子相交的部分
-     * @returns [x,y,width,height]
-     */
-    intersect(box) {
-        if (!Box.isCover(this, box))
-            return null;
-        //取靠右的为基准
-        let referenceIdx = this.x >= box.x ? 0 : 1;
-        let boxArr = [this, box];
-        let [right, left] = [boxArr[referenceIdx], boxArr[1 - referenceIdx]];
-        let [x0, y0, x1, y1] = [0, 0, 0, 0];
-        x0 = right.x;
-        y0 = Math.max(right.y, left.y);
-        x1 = Math.min(right.x + right.width, left.x + left.width);
-        y1 = Math.min(right.y + right.height, left.y + left.height);
-        return Box.createBox(x0, y0, x1 - x0, y1 - y0);
-    }
-    /**
-     * 获取刚好包围两个盒子的盒子
-     * @param box
-     */
-    dirtyRect(box) {
-        return Box.dirtyRect(this, box);
-    }
-    /**判断两个矩形是否有相交(碰撞) */
-    static isCover(Box1, Box2) {
-        return Box1.x + Box1.width > Box2.x &&
-            Box2.x + Box2.width > Box1.x &&
-            Box1.y + Box1.height > Box2.y &&
-            Box2.y + Box2.height > Box1.y;
-    }
-    /**判断点是否在改矩形中 */
-    static pointInside(box, point) {
-        return box.x <= point.x &&
-            box.y <= point.y &&
-            box.x + box.width >= point.x &&
-            box.y + box.height >= point.y;
-    }
-    /**工厂函数 */
-    static createBox(x = 0, y = 0, width = 0, height = 0) {
-        let box = pool.pop() || new Box();
-        box.setBox(x, y, width, height);
-        return box;
-    }
-    /**获取刚好包围多个盒子的大盒子 */
-    static dirtyRect(...box) {
-        let x0 = Math.min(...box.map((v) => v.x));
-        let y0 = Math.min(...box.map((v) => v.y));
-        let x1 = Math.max(...box.map((v) => v.x + v.width));
-        let y1 = Math.max(...box.map((v) => v.y + v.height));
-        return Box.createBox(x0, y0, x1 - x0, y1 - y0);
-    }
-}
-exports.default = Box;
-
-
-/***/ }),
-
 /***/ "./src/canvasDOM/math/Matrix.ts":
 /*!**************************************!*\
   !*** ./src/canvasDOM/math/Matrix.ts ***!
@@ -266,6 +152,101 @@ exports.default = Matrix;
 
 /***/ }),
 
+/***/ "./src/canvasDOM/math/TransformMatrix.ts":
+/*!***********************************************!*\
+  !*** ./src/canvasDOM/math/TransformMatrix.ts ***!
+  \***********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Matrix_1 = __webpack_require__(/*! ./Matrix */ "./src/canvasDOM/math/Matrix.ts");
+const anglePI = Math.PI * 180;
+function sin(r) {
+    let angle = r == 0 ? 0 : anglePI / r;
+    return Math.sin(angle);
+}
+function cos(r) {
+    let angle = r == 0 ? 0 : anglePI / r;
+    return Math.cos(angle);
+}
+function tan(r) {
+    let angle = r == 0 ? 0 : anglePI / r;
+    return Math.tan(angle);
+}
+/**
+ * 装换矩阵
+ * a 水平缩放绘图
+ * b 水平倾斜绘图
+ * c 垂直倾斜绘图
+ * d 垂直缩放绘图
+ * e 水平移动绘图
+ * f 垂直移动绘图
+ */
+let pool = [];
+class TransformMatrix extends Matrix_1.default {
+    constructor(scaleX = 1, skewX = 0, skewY = 0, scaleY = 1, offsetX = 0, offsetY = 0) {
+        super(scaleX, skewX, skewY, scaleY, offsetX, offsetY);
+    }
+    setTransformMatrix(scaleX, scaleY, skewX, skewY, offsetX, offsetY) {
+        this.setMatrix(scaleX, skewX, skewY, scaleY, offsetX, offsetY);
+    }
+    setByStyle(style) {
+        this.translate(style.x + style.anchorX, style.y + style.anchorY)
+            .scale(style.scaleX, style.scaleY)
+            .rotate(style.rotate)
+            .skew(style.skewX, style.skewY);
+    }
+    value() {
+        return this.data;
+    }
+    /**
+     * 旋转
+     * @param r 弧度
+     */
+    rotate(r) {
+        var c = cos(r), s = sin(r), mx = this.data, a = mx[0] * c + mx[2] * s, b = mx[1] * c + mx[3] * s, c = -mx[0] * s + mx[2] * c, d = -mx[1] * s + mx[3] * c;
+        mx[0] = a;
+        mx[1] = b;
+        mx[2] = c;
+        mx[3] = d;
+        return this;
+    }
+    skew(x, y) {
+        var tanX = tan(x), tanY = tan(y), mx = this.data, mx0 = mx[0], mx1 = mx[1];
+        mx[0] += tanY * mx[2];
+        mx[1] += tanY * mx[3];
+        mx[2] += tanX * mx0;
+        mx[3] += tanX * mx1;
+        return this;
+    }
+    translate(x, y) {
+        let mx = this.data;
+        mx[4] += mx[0] * x + mx[2] * y;
+        mx[5] += mx[1] * x + mx[3] * y;
+        return this;
+    }
+    scale(x, y) {
+        var mx = this.data;
+        mx[0] *= x;
+        mx[1] *= x;
+        mx[2] *= y;
+        mx[3] *= y;
+        return this;
+    }
+    static createTransFormMatrix(scaleX = 1, skewX = 0, skewY = 0, scaleY = 1, offsetX = 0, offsetY = 0) {
+        let Matrix = pool.pop() || new TransformMatrix();
+        Matrix.setTransformMatrix(scaleX, skewX, skewY, scaleY, offsetX, offsetY);
+        return Matrix;
+    }
+}
+exports.default = TransformMatrix;
+
+
+/***/ }),
+
 /***/ "./src/index.ts":
 /*!**********************!*\
   !*** ./src/index.ts ***!
@@ -275,19 +256,66 @@ exports.default = Matrix;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const Box_1 = __webpack_require__(/*! ./canvasDOM/math/Box */ "./src/canvasDOM/math/Box.ts");
+const TransformMatrix_1 = __webpack_require__(/*! ./canvasDOM/math/TransformMatrix */ "./src/canvasDOM/math/TransformMatrix.ts");
 class Main {
     constructor() {
-        let b0 = Box_1.default.createBox(0, 0, 100, 100);
-        let b1 = Box_1.default.createBox(0, 0, 100, 100);
-        let b2 = Box_1.default.createBox(100, 100, 100, 100);
-        let b3 = Box_1.default.createBox(50, 50, 100, 100);
-        let b4 = Box_1.default.createBox(-50, -50, 300, 100);
-        console.log(b0.dirtyRect(b2));
+        // let b0 = Box.createBox(0,0,100,100)
+        // let b1 = Box.createBox(0,0,100,100)
+        // let b2 = Box.createBox(100,100,100,100)
+        // let b3 = Box.createBox(50,50,100,100)
+        // let b4 = Box.createBox(-50,-50,300,100)
+        // console.log(b0.dirtyRect(b2))
+        let s = "./test1.jpeg";
+        let ma = TransformMatrix_1.default.createTransFormMatrix();
+        let a = {
+            x: 0,
+            y: 0,
+            scaleX: 2,
+            scaleY: 1,
+            visible: true,
+            alpha: 1,
+            width: 0,
+            height: 0,
+            anchorX: 0,
+            anchorY: 0,
+            rotate: 0,
+            skewX: 0,
+            skewY: 0,
+        };
+        ma.setByStyle(a);
+        abc(ma.value());
     }
 }
-new Main();
+let img = new Image();
+function load() {
+    return new Promise((resolve, reject) => {
+        img.src = "./test1.jpeg";
+        img.onload = function () { resolve(); };
+    });
+}
+function abc(a) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let c = document.createElement("canvas");
+        c.width = c.height = 1000;
+        document.body.appendChild(c);
+        let ctx = c.getContext("2d");
+        yield load();
+        ctx.setTransform(...a);
+        ctx.drawImage(img, 0, 0);
+    });
+}
+window.onload = function () {
+    new Main();
+};
 
 
 /***/ })

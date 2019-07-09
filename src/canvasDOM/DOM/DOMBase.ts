@@ -93,6 +93,9 @@ export abstract class DOMBase {
             height:0,
             anchorX:0,
             anchorY:0,
+            rotate:0,
+            skewX:0,
+            skewY:0,
         }
         this.reRender = true;
         this.listenerMap = {};
@@ -121,6 +124,9 @@ export interface DOMStyleBase{
     height:number
     anchorX:number
     anchorY:number
+    rotate:number
+    skewX:number
+    skewY:number
 }
 
 // interface DOMStyleBaseKeyOf{
