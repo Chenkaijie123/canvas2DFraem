@@ -190,7 +190,7 @@ class TransformMatrix extends Matrix_1.default {
     constructor(scaleX = 1, skewX = 0, skewY = 0, scaleY = 1, offsetX = 0, offsetY = 0) {
         super(scaleX, skewX, skewY, scaleY, offsetX, offsetY);
     }
-    setTransformMatrix(scaleX, scaleY, skewX, skewY, offsetX, offsetY) {
+    setTransformMatrix(scaleX, skewX, skewY, scaleY, offsetX, offsetY) {
         this.setMatrix(scaleX, skewX, skewY, scaleY, offsetX, offsetY);
     }
     setByStyle(style) {
@@ -292,6 +292,7 @@ class Main {
             skewY: 0,
         };
         ma.setByStyle(a);
+        // ma.scale(2,2);
         abc(ma.value());
     }
 }
@@ -305,12 +306,12 @@ function load() {
 function abc(a) {
     return __awaiter(this, void 0, void 0, function* () {
         let c = document.createElement("canvas");
-        c.width = c.height = 1000;
+        c.width = c.height = 2000;
         document.body.appendChild(c);
         let ctx = c.getContext("2d");
         yield load();
         ctx.setTransform(...a);
-        ctx.drawImage(img, 0, 0);
+        ctx.drawImage(img, 200, 200);
     });
 }
 window.onload = function () {

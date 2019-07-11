@@ -31,6 +31,7 @@ class Main{
             skewY:0,
         }
         ma.setByStyle(a)
+        // ma.scale(2,2);
         abc(ma.value())
 
     }
@@ -45,12 +46,12 @@ function load(){
 
 async function abc(a:any){
     let c = document.createElement("canvas")
-    c.width = c.height = 1000
+    c.width = c.height = 2000
     document.body.appendChild(c)
     let ctx = c.getContext("2d")
     await load();
     ctx.setTransform(...a)
-    ctx.drawImage(img,0,0)
+    ctx.drawImage(img,200,200)
 }
 
 window.onload = function(){

@@ -35,7 +35,7 @@ export default class TransformMatrix extends Matrix{
     private constructor(scaleX = 1,skewX = 0,skewY = 0,scaleY = 1,offsetX = 0,offsetY = 0){
         super(scaleX,skewX,skewY,scaleY,offsetX,offsetY);
     }
-    public setTransformMatrix(scaleX:number,scaleY:number,skewX:number,skewY:number,offsetX:number,offsetY:number):void{
+    public setTransformMatrix(scaleX:number,skewX:number,skewY:number,scaleY:number,offsetX:number,offsetY:number):void{
         this.setMatrix(scaleX,skewX,skewY,scaleY,offsetX,offsetY);
     }
 
