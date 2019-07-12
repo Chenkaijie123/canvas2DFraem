@@ -2,18 +2,18 @@ import Matrix from "./Matrix"
 import { DOMStyleBase } from "../DOM/DOMBase"
 const anglePI = Math.PI / 180;
 function sin(r: number) {
-    // let angle = r == 0 ? 0 : r / anglePI
-    return Math.sin(r);
+    let angle = r == 0 ? 0 : r * anglePI
+    return Math.sin(angle);
 }
 
 function cos(r: number) {
-    // let angle = r == 0 ? 0 : r / anglePI
-    return Math.cos(r);
+    let angle = r == 0 ? 0 : r * anglePI
+    return Math.cos(angle);
 }
 
 function tan(r: number) {
-    // let angle = r == 0 ? 0 : r / anglePI
-    return Math.tan(r);
+    let angle = r == 0 ? 0 : r * anglePI
+    return Math.tan(angle);
 }
 /**
  * 装换矩阵

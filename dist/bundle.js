@@ -165,16 +165,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const Matrix_1 = __webpack_require__(/*! ./Matrix */ "./src/canvasDOM/math/Matrix.ts");
 const anglePI = Math.PI / 180;
 function sin(r) {
-    // let angle = r == 0 ? 0 : r / anglePI
-    return Math.sin(r);
+    let angle = r == 0 ? 0 : r * anglePI;
+    return Math.sin(angle);
 }
 function cos(r) {
-    // let angle = r == 0 ? 0 : r / anglePI
-    return Math.cos(r);
+    let angle = r == 0 ? 0 : r * anglePI;
+    return Math.cos(angle);
 }
 function tan(r) {
-    // let angle = r == 0 ? 0 : r / anglePI
-    return Math.tan(r);
+    let angle = r == 0 ? 0 : r * anglePI;
+    return Math.tan(angle);
 }
 /**
  * 装换矩阵
@@ -307,9 +307,9 @@ class Main {
             alpha: 1,
             width: 0,
             height: 0,
-            anchorX: 0,
-            anchorY: 0,
-            rotate: 90,
+            anchorX: 112,
+            anchorY: 84,
+            rotate: 30,
             skewX: 0,
             skewY: 0,
         };
@@ -324,23 +324,46 @@ function load() {
         img.onload = function () { resolve(); };
     });
 }
+let ctx;
 function abc(a) {
     return __awaiter(this, void 0, void 0, function* () {
         let c = document.createElement("canvas");
         c.width = c.height = 2000;
         document.body.appendChild(c);
-        let ctx = c.getContext("2d");
+        ctx = c.getContext("2d");
         yield load();
-        ctx.setTransform(...a);
-        // let t = 2
-        // ctx.setTransform(
-        //     t*Math.cos(45),
-        //     t*Math.sin(45),
-        //     -Math.sin(45),
-        //     Math.cos(45),
-        //     112,84)
-        ctx.drawImage(img, 300, 300);
+        // ctx.setTransform(...a)
+        // ctx.drawImage(img,0,0)
+        start();
     });
+}
+function start() {
+    let requestAnimationFrame = window.requestAnimationFrame;
+    let a = {
+        x: 0,
+        y: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        alpha: 1,
+        width: 0,
+        height: 0,
+        anchorX: 112,
+        anchorY: 84,
+        rotate: 30,
+        skewX: 0,
+        skewY: 0,
+    };
+    let ma = TransformMatrix_1.default.createTransFormMatrix();
+    let idx = 0;
+    function loop() {
+        ma.setByStyle(a);
+        ++idx % 10 == 0 && (a.rotate += 1);
+        ctx.setTransform(...ma.value());
+        ctx.drawImage(img, a.anchorX, a.anchorY);
+        requestAnimationFrame(loop);
+    }
+    loop();
 }
 window.onload = function () {
     new Main();
