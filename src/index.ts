@@ -18,7 +18,7 @@ class Main{
         let a = {
             x:0,
             y:0,
-            scaleX:2,
+            scaleX:1,
             scaleY:1,
             visible:true,
             alpha:1,
@@ -26,12 +26,12 @@ class Main{
             height:0,
             anchorX:0,
             anchorY:0,
-            rotate:0,
+            rotate:90,
             skewX:0,
             skewY:0,
         }
         ma.setByStyle(a)
-        // ma.scale(2,2);
+  
         abc(ma.value())
 
     }
@@ -51,7 +51,14 @@ async function abc(a:any){
     let ctx = c.getContext("2d")
     await load();
     ctx.setTransform(...a)
-    ctx.drawImage(img,200,200)
+    // let t = 2
+    // ctx.setTransform(
+    //     t*Math.cos(45),
+    //     t*Math.sin(45),
+    //     -Math.sin(45),
+    //     Math.cos(45),
+    //     112,84)
+    ctx.drawImage(img,300,300)
 }
 
 window.onload = function(){

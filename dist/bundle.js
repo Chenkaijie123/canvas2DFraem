@@ -163,18 +163,18 @@ exports.default = Matrix;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const Matrix_1 = __webpack_require__(/*! ./Matrix */ "./src/canvasDOM/math/Matrix.ts");
-const anglePI = Math.PI * 180;
+const anglePI = Math.PI / 180;
 function sin(r) {
-    let angle = r == 0 ? 0 : anglePI / r;
-    return Math.sin(angle);
+    // let angle = r == 0 ? 0 : r / anglePI
+    return Math.sin(r);
 }
 function cos(r) {
-    let angle = r == 0 ? 0 : anglePI / r;
-    return Math.cos(angle);
+    // let angle = r == 0 ? 0 : r / anglePI
+    return Math.cos(r);
 }
 function tan(r) {
-    let angle = r == 0 ? 0 : anglePI / r;
-    return Math.tan(angle);
+    // let angle = r == 0 ? 0 : r / anglePI
+    return Math.tan(r);
 }
 /**
  * 装换矩阵
@@ -194,10 +194,16 @@ class TransformMatrix extends Matrix_1.default {
         this.setMatrix(scaleX, skewX, skewY, scaleY, offsetX, offsetY);
     }
     setByStyle(style) {
-        this.translate(style.x + style.anchorX, style.y + style.anchorY)
-            .scale(style.scaleX, style.scaleY)
-            .rotate(style.rotate)
-            .skew(style.skewX, style.skewY);
+        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y, width, height } = style;
+        let rotateC = cos(rotate);
+        let rotateS = sin(rotate);
+        let tx = (x + anchorX) * scaleX;
+        let ty = (y + anchorY) * scaleY;
+        let a = rotateC * scaleX;
+        let b = rotateS * scaleX;
+        let c = -rotateS * scaleY;
+        let d = rotateC * scaleY;
+        this.setMatrix(a, b, c, d, tx, ty);
     }
     value() {
         return this.data;
@@ -206,36 +212,52 @@ class TransformMatrix extends Matrix_1.default {
      * 旋转
      * @param r 弧度
      */
-    rotate(r) {
-        var c = cos(r), s = sin(r), mx = this.data, a = mx[0] * c + mx[2] * s, b = mx[1] * c + mx[3] * s, c = -mx[0] * s + mx[2] * c, d = -mx[1] * s + mx[3] * c;
-        mx[0] = a;
-        mx[1] = b;
-        mx[2] = c;
-        mx[3] = d;
-        return this;
-    }
-    skew(x, y) {
-        var tanX = tan(x), tanY = tan(y), mx = this.data, mx0 = mx[0], mx1 = mx[1];
-        mx[0] += tanY * mx[2];
-        mx[1] += tanY * mx[3];
-        mx[2] += tanX * mx0;
-        mx[3] += tanX * mx1;
-        return this;
-    }
-    translate(x, y) {
-        let mx = this.data;
-        mx[4] += mx[0] * x + mx[2] * y;
-        mx[5] += mx[1] * x + mx[3] * y;
-        return this;
-    }
-    scale(x, y) {
-        var mx = this.data;
-        mx[0] *= x;
-        mx[1] *= x;
-        mx[2] *= y;
-        mx[3] *= y;
-        return this;
-    }
+    // public rotate(r:number):this{
+    //     var co = cos(r),
+    //     si = sin(r),
+    //     mx = this.data,
+    //     a = mx[0] * co + mx[2] * si,
+    //     b = mx[1] * co + mx[3] * si,
+    //     c = -mx[0] * si + mx[2] * co,
+    //     d = -mx[1] * si + mx[3] * co;
+    //     mx[0] = a;
+    //     mx[1] = b;
+    //     mx[2] = c;
+    //     mx[3] = d;
+    //     return this;
+    // }
+    // public skew(x:number,y:number):this{
+    //     var tanX=tan(x),
+    //     tanY=tan(y),
+    //     mx = this.data,
+    //     mx0=mx[0],
+    //     mx1=mx[1];
+    //     mx[0] += tanY*mx[2]; 
+    //     mx[1] += tanY*mx[3]; 
+    //     mx[2] += tanX*mx0; 
+    //     mx[3] += tanX*mx1;
+    //     return this;
+    // }
+    // public translate(x:number,y:number):this{
+    //     let mx = this.data;
+    //     mx[4] += x;
+    //     mx[5] += y;
+    //     return this;
+    // }
+    // public scale(x:number,y:number):this{
+    //     var mx = this.data;
+    //     if(x != 1){
+    //         mx[0] *= x;
+    //         mx[2] *= x;
+    //         mx[4] *= x;
+    //     }
+    //     if(y != 1){
+    //         mx[1] *= y;
+    //         mx[3] *= y;
+    //         mx[5] *= y;
+    //     }
+    //     return this;
+    // }
     static createTransFormMatrix(scaleX = 1, skewX = 0, skewY = 0, scaleY = 1, offsetX = 0, offsetY = 0) {
         let Matrix = pool.pop() || new TransformMatrix();
         Matrix.setTransformMatrix(scaleX, skewX, skewY, scaleY, offsetX, offsetY);
@@ -279,7 +301,7 @@ class Main {
         let a = {
             x: 0,
             y: 0,
-            scaleX: 2,
+            scaleX: 1,
             scaleY: 1,
             visible: true,
             alpha: 1,
@@ -287,12 +309,11 @@ class Main {
             height: 0,
             anchorX: 0,
             anchorY: 0,
-            rotate: 0,
+            rotate: 90,
             skewX: 0,
             skewY: 0,
         };
         ma.setByStyle(a);
-        // ma.scale(2,2);
         abc(ma.value());
     }
 }
@@ -311,7 +332,14 @@ function abc(a) {
         let ctx = c.getContext("2d");
         yield load();
         ctx.setTransform(...a);
-        ctx.drawImage(img, 200, 200);
+        // let t = 2
+        // ctx.setTransform(
+        //     t*Math.cos(45),
+        //     t*Math.sin(45),
+        //     -Math.sin(45),
+        //     Math.cos(45),
+        //     112,84)
+        ctx.drawImage(img, 300, 300);
     });
 }
 window.onload = function () {
