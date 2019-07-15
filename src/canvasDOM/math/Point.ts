@@ -35,13 +35,19 @@ export default class Point extends Matrix{
         pool.push(this);
     }
 
+    
+    public copy(p:Point):this{
+        this.data[0] = p.x;
+        this.data[1] = p.y;
+        return this;
+    }
     /**
      * 两点叠加，可实现平移或者坐标系转化
      * @param point 
      */
     public add(point:Point):this{
-        this.x += point.x;
-        this.y += point.y;
+        this.data[0] += point.x;
+        this.data[1] += point.y;
         return this;
     }
 
@@ -51,4 +57,5 @@ export default class Point extends Matrix{
         point.setMatrix(x,y);
         return point;
     }
+
 }

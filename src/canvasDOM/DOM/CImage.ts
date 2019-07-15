@@ -33,10 +33,11 @@ export default class CImage extends DOMBase{
         this.type = "CImage";
         this.treasure = new Image();
     }
-
-    // protected init():void{
-    //     super.init();
-    // }
+    public render(ctx:CanvasRenderingContext2D):void{
+        ctx.setTransform(...this.matrix.value())
+        ctx.drawImage(this.treasure,-this.style.anchorX,-this.style.anchorY);
+        
+    }
 
 
 }

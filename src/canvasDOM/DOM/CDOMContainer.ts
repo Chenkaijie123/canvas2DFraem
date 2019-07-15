@@ -2,7 +2,7 @@ import {DOMBase,DOMContainer} from "./DOMBase"
 /**容器类 */
 export default class CDOMContainer extends DOMBase implements DOMContainer{
     public parent:DOMContainer
-    public children:DOMBase[]
+    public children:DOMBase[] = [];
     public appendChild(child:DOMBase):this{
         if(child.parent == this) return this;
         child.removeSelf();
