@@ -195,7 +195,9 @@ class CDocument extends CDOMContainer_1.default {
             }
             e.render(this.context);
         };
+        let t = Date.now();
         this.iterator(loot, fn);
+        console.log(Date.now() - t);
     }
 }
 exports.default = CDocument;

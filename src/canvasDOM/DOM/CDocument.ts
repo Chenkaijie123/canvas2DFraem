@@ -55,7 +55,8 @@ export default class CDocument extends CDOMContainer {
 
     //内部计算并且渲染
     public sysRender():void{
-        // this.context.clearRect(0,0,this.canvas.width,this.canvas.height)
+        //todo
+        this.context.clearRect(0,0,this.canvas.width,this.canvas.height)
         let loot = this.children;
         let fn = (e:DOMBase)=>{
             //重新计算需要重绘的数据
@@ -71,6 +72,8 @@ export default class CDocument extends CDOMContainer {
             }
             e.render(this.context);
         }
+        let t = Date.now()
         this.iterator(loot,fn);
+        console.log(Date.now() - t)
     }
 }
