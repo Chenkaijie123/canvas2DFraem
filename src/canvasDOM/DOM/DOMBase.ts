@@ -10,12 +10,12 @@ export abstract class DOMBase {
     public className: string
     public id: string
     public parent: DOMContainer
-    private listenerMap: { [key: string]: [Function, any][] }
+    protected listenerMap: { [key: string]: [Function, any][] }
     public reRender: boolean;//重绘标志
     protected proxy: DOMStyleBase
     protected deep: number
     public matrix: TransformMatrix
-    public position: Point;
+    public position: Point;//全局坐标
     public get style() {
         return this.proxy;
     }
@@ -30,21 +30,6 @@ export abstract class DOMBase {
         this.proxy = new Proxy(this._style, {
             set<k extends keyof DOMStyleBase>(target: DOMStyleBase, key: k, newData: DOMStyleBase[k], proxy: DOMStyleBase): any {
                 if (target[key] != newData) {
-                    // let t = target[key];
-                    // switch (key) {
-                    //     case "x":
-                    //         self.position.setPoint(
-                    //             self.position.x += ((newData as number) - (t as number)),
-                    //             self.position.y
-                    //         )
-                    //         break;
-                    //     case "y":
-                    //         self.position.setPoint(
-                    //             self.position.x += (self.position.y,
-                    //                 (newData as number) - (t as number))
-                    //         )
-                    //         break;
-                    // }
                     target[key] = newData;
                     if (!self.reRender) self.reRender = true;
                     self.proxyHandle(target, key, newData, proxy);

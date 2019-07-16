@@ -179,7 +179,9 @@ class CDocument extends CDOMContainer_1.default {
     }
     //内部计算并且渲染
     sysRender() {
-        // this.context.clearRect(0,0,this.canvas.width,this.canvas.height)
+        //todo
+        this.context.setTransform(1, 0, 0, 1, 0, 0);
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
         let loot = this.children;
         let fn = (e) => {
             //重新计算需要重绘的数据
@@ -189,7 +191,7 @@ class CDocument extends CDOMContainer_1.default {
                 p.add(e.parent.position);
                 e.position.copy(p);
                 p.release();
-                e.matrix.setByStyle(style);
+                e.matrix.setByStyle(style); //转换矩阵
                 e.matrix.changeCoordinate(e.position, style.scaleX, style.scaleY);
                 e.reRender = false;
             }
@@ -256,6 +258,79 @@ exports.default = CImage;
 
 /***/ }),
 
+/***/ "./src/canvasDOM/DOM/CText.ts":
+/*!************************************!*\
+  !*** ./src/canvasDOM/DOM/CText.ts ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const DOMBase_1 = __webpack_require__(/*! ./DOMBase */ "./src/canvasDOM/DOM/DOMBase.ts");
+const TransformMatrix_1 = __webpack_require__(/*! ../math/TransformMatrix */ "./src/canvasDOM/math/TransformMatrix.ts");
+const Point_1 = __webpack_require__(/*! ../math/Point */ "./src/canvasDOM/math/Point.ts");
+class CText extends DOMBase_1.DOMBase {
+    get style() {
+        return this.proxy;
+    }
+    set style(v) {
+        this._style = v;
+    }
+    init() {
+        this.style = {
+            x: 0,
+            y: 0,
+            scaleX: 1,
+            scaleY: 1,
+            visible: true,
+            alpha: 1,
+            width: 0,
+            height: 0,
+            anchorX: 0,
+            anchorY: 0,
+            rotate: 0,
+            skewX: 0,
+            skewY: 0,
+            fontSize: 24,
+            fontFamily: "微软雅黑",
+            textColor: 0xffffff,
+            border: 0,
+            borderColor: null,
+            bold: false,
+            text: "",
+            textAlign: "left",
+            fontStyle: "normal",
+        };
+        this.reRender = true;
+        this.listenerMap = {};
+        this.matrix = TransformMatrix_1.default.createTransFormMatrix();
+        this.position = Point_1.default.createPiont();
+    }
+    render(ctx) {
+        ctx.setTransform(...this.matrix.value());
+        let style = `${this.style.fontStyle} normal ${this.style.bold ? "bold" : "normal"} ${this.style.fontSize}px ${this.style.fontFamily}`;
+        if (ctx.font != style)
+            ctx.font = style;
+        let color = `#${this.style.textColor.toString(16)}`;
+        if (ctx.fillStyle != color)
+            ctx.fillStyle = color;
+        ctx.fillText(this.style.text, this.style.anchorX, this.style.anchorY);
+        if (this.style.border > 0) {
+            color = `#${this.style.borderColor.toString(16)}`;
+            if (ctx.strokeStyle != color)
+                ctx.strokeStyle = color;
+            ctx.strokeText(this.style.text, this.style.anchorX, this.style.anchorY);
+        }
+        // console.log(ctx.measureText(this.style.text))
+    }
+}
+exports.default = CText;
+
+
+/***/ }),
+
 /***/ "./src/canvasDOM/DOM/DOMBase.ts":
 /*!**************************************!*\
   !*** ./src/canvasDOM/DOM/DOMBase.ts ***!
@@ -280,21 +355,6 @@ class DOMBase {
         this.proxy = new Proxy(this._style, {
             set(target, key, newData, proxy) {
                 if (target[key] != newData) {
-                    // let t = target[key];
-                    // switch (key) {
-                    //     case "x":
-                    //         self.position.setPoint(
-                    //             self.position.x += ((newData as number) - (t as number)),
-                    //             self.position.y
-                    //         )
-                    //         break;
-                    //     case "y":
-                    //         self.position.setPoint(
-                    //             self.position.x += (self.position.y,
-                    //                 (newData as number) - (t as number))
-                    //         )
-                    //         break;
-                    // }
                     target[key] = newData;
                     if (!self.reRender)
                         self.reRender = true;
@@ -563,7 +623,7 @@ class TransformMatrix extends Matrix_1.default {
         this.setMatrix(scaleX, skewX, skewY, scaleY, offsetX, offsetY);
     }
     setByStyle(style) {
-        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y, width, height } = style;
+        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y } = style;
         let rotateC = cos(rotate);
         let rotateS = sin(rotate);
         let tx = (x + anchorX) * scaleX;
@@ -606,6 +666,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const CImage_1 = __webpack_require__(/*! ./canvasDOM/DOM/CImage */ "./src/canvasDOM/DOM/CImage.ts");
 const CDocument_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDocument */ "./src/canvasDOM/DOM/CDocument.ts");
 const CDOMContainer_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDOMContainer */ "./src/canvasDOM/DOM/CDOMContainer.ts");
+const CText_1 = __webpack_require__(/*! ./canvasDOM/DOM/CText */ "./src/canvasDOM/DOM/CText.ts");
 class Main {
     constructor() {
         this.stage = new CDocument_1.default();
@@ -636,6 +697,29 @@ class Main {
         let p = new CImage_1.default();
         p.src = "./test.png";
         g.appendChild(p);
+        let t = new CText_1.default();
+        t.style.text = "你好";
+        t.style.fontFamily = "Arial";
+        t.style.x = 300;
+        t.style.textColor = 0xFFF9E2;
+        t.style.border = 2;
+        t.style.borderColor = 0x000000;
+        t.style.rotate = 30;
+        t.style.fontSize = 30;
+        t.style.anchorX = 30;
+        t.style.anchorY = 15;
+        setInterval(() => {
+            t.style.rotate++;
+        }, 10);
+        g.appendChild(t);
+        let temp = 0;
+        for (let k = 0; k < 100; k++) {
+            let img = new CText_1.default();
+            img.style.text = `text${k}`;
+            img.style.x = temp + k * 1;
+            img.style.y = temp + k * 3;
+            g.appendChild(img);
+        }
     }
 }
 new Main();

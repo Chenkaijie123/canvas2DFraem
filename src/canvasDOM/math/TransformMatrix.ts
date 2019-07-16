@@ -41,7 +41,7 @@ export default class TransformMatrix extends Matrix {
     }
 
     public setByStyle(style: DOMStyleBase): void {
-        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y, width, height } = style;
+        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y} = style;
         let rotateC = cos(rotate);
         let rotateS = sin(rotate);
         let tx = (x + anchorX) * scaleX;

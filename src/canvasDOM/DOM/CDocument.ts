@@ -56,6 +56,7 @@ export default class CDocument extends CDOMContainer {
     //内部计算并且渲染
     public sysRender():void{
         //todo
+        this.context.setTransform(1,0,0,1,0,0)
         this.context.clearRect(0,0,this.canvas.width,this.canvas.height)
         let loot = this.children;
         let fn = (e:DOMBase)=>{
@@ -66,7 +67,7 @@ export default class CDocument extends CDOMContainer {
                 p.add(e.parent.position);
                 e.position.copy(p);
                 p.release();
-                e.matrix.setByStyle(style);
+                e.matrix.setByStyle(style);//转换矩阵
                 e.matrix.changeCoordinate(e.position,style.scaleX,style.scaleY);
                 e.reRender = false;
             }
