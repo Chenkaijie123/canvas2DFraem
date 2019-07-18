@@ -51,6 +51,7 @@ export default class TransformMatrix extends Matrix {
         let c = -rotateS * scaleY;
         let d = rotateC * scaleY;
         this.setMatrix(a, b, c, d, tx, ty);
+        // this.translate(x,y).rotate(rotate).scale(scaleX,scaleY)
     }
 
     //转换坐标系
@@ -61,6 +62,47 @@ export default class TransformMatrix extends Matrix {
 
     public value(): [number, number, number, number, number, number] {
         return this.data;
+    }
+
+    public rotate(angle: number): this {
+        // angle = +angle;
+        if (angle !== 0) {
+            let u = cos(angle);
+            let v = sin(angle);
+            let ta = this.a;
+            let tb = this.b;
+            let tc = this.c;
+            let td = this.d;
+            let ttx = this.e;
+            let tty = this.f;
+            this.data[0] = ta * u - tb * v;
+            this.data[1] = ta * v + tb * u;
+            this.data[2] = tc * u - td * v;
+            this.data[3] = tc * v + td * u;
+            this.data[4] = ttx * u - tty * v;
+            this.data[5]= ttx * v + tty * u;
+        }
+        return this;
+    }
+
+    public scale(sx: number, sy: number): this {
+        if (sx !== 1) {
+            this.data[0] *= sx;
+            this.data[2] *= sx;
+            this.data[4] *= sx;
+        }
+        if (sy !== 1) {
+            this.data[1] *= sy;
+            this.data[3] *= sy;
+            this.data[5] *= sy;
+        }
+        return this;
+    }
+
+    public translate(dx: number, dy: number): this {
+        this.data[4] += dx;
+        this.data[5] += dy;
+        return this;
     }
 
     public static createTransFormMatrix(scaleX = 1, skewX = 0, skewY = 0, scaleY = 1, offsetX = 0, offsetY = 0): TransformMatrix {

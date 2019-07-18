@@ -39,10 +39,10 @@ export default class CText extends DOMBase{
         this.reRender = true;
         this.listenerMap = {};
         this.matrix = TransformMatrix.createTransFormMatrix();
-        this.position = Point.createPiont();
+        // this.position = Point.createPiont();
     }
     public render(ctx:CanvasRenderingContext2D):void{
-        ctx.setTransform(...this.matrix.value())
+        // ctx.setTransform(...this.matrix.value())
         let style = `${this.style.fontStyle} normal ${this.style.bold?"bold":"normal"} ${this.style.fontSize}px ${this.style.fontFamily}`
         if(ctx.font != style)ctx.font = style;
         let color = `#${this.style.textColor.toString(16)}`;

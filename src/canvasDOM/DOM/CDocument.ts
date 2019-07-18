@@ -16,6 +16,7 @@ export default class CDocument extends CDOMContainer {
         this.canvas = canvas
         canvas.width = 1000;
         canvas.height = 600;
+        canvas.id = "canvas"
         document.body.appendChild(canvas);
         this.context = canvas.getContext("2d");
     }
@@ -59,17 +60,23 @@ export default class CDocument extends CDOMContainer {
         this.context.setTransform(1,0,0,1,0,0)
         this.context.clearRect(0,0,this.canvas.width,this.canvas.height)
         let loot = this.children;
+        let anc = 0
         let fn = (e:DOMBase)=>{
             //重新计算需要重绘的数据
             if(e.reRender) {
                 let style = e.style
-                let p = Point.createPiont(style.x,style.y);
-                p.add(e.parent.position);
-                e.position.copy(p);
-                p.release();
+                // let p = Point.createPiont(style.x,style.y);
+                // p.add(e.parent.position);
+                // e.position.copy(p);
+                // p.release();
                 e.matrix.setByStyle(style);//转换矩阵
-                e.matrix.changeCoordinate(e.position,style.scaleX,style.scaleY);
+                // e.matrix.changeCoordinate(e.position,style.scaleX,style.scaleY);
                 e.reRender = false;
+            }
+            if(e.parent instanceof CDocument){
+                this.context.setTransform(...e.matrix.value());
+            }else{
+                this.context.transform(...e.matrix.value());
             }
             e.render(this.context);
         }

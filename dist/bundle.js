@@ -136,7 +136,6 @@ exports.default = CDOMContainer;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const CDOMContainer_1 = __webpack_require__(/*! ./CDOMContainer */ "./src/canvasDOM/DOM/CDOMContainer.ts");
-const Point_1 = __webpack_require__(/*! ../math/Point */ "./src/canvasDOM/math/Point.ts");
 /**虚拟文本 */
 class CDocument extends CDOMContainer_1.default {
     constructor() {
@@ -148,6 +147,7 @@ class CDocument extends CDOMContainer_1.default {
         this.canvas = canvas;
         canvas.width = 1000;
         canvas.height = 600;
+        canvas.id = "canvas";
         document.body.appendChild(canvas);
         this.context = canvas.getContext("2d");
     }
@@ -183,17 +183,24 @@ class CDocument extends CDOMContainer_1.default {
         this.context.setTransform(1, 0, 0, 1, 0, 0);
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
         let loot = this.children;
+        let anc = 0;
         let fn = (e) => {
             //重新计算需要重绘的数据
             if (e.reRender) {
                 let style = e.style;
-                let p = Point_1.default.createPiont(style.x, style.y);
-                p.add(e.parent.position);
-                e.position.copy(p);
-                p.release();
+                // let p = Point.createPiont(style.x,style.y);
+                // p.add(e.parent.position);
+                // e.position.copy(p);
+                // p.release();
                 e.matrix.setByStyle(style); //转换矩阵
-                e.matrix.changeCoordinate(e.position, style.scaleX, style.scaleY);
+                // e.matrix.changeCoordinate(e.position,style.scaleX,style.scaleY);
                 e.reRender = false;
+            }
+            if (e.parent instanceof CDocument) {
+                this.context.setTransform(...e.matrix.value());
+            }
+            else {
+                this.context.transform(...e.matrix.value());
             }
             e.render(this.context);
         };
@@ -249,7 +256,7 @@ class CImage extends DOMBase_1.DOMBase {
         this.treasure = new Image();
     }
     render(ctx) {
-        ctx.setTransform(...this.matrix.value());
+        // ctx.setTransform(...this.matrix.value())
         ctx.drawImage(this.treasure, -this.style.anchorX, -this.style.anchorY);
     }
 }
@@ -309,7 +316,7 @@ class CText extends DOMBase_1.DOMBase {
         this.position = Point_1.default.createPiont();
     }
     render(ctx) {
-        ctx.setTransform(...this.matrix.value());
+        // ctx.setTransform(...this.matrix.value())
         let style = `${this.style.fontStyle} normal ${this.style.bold ? "bold" : "normal"} ${this.style.fontSize}px ${this.style.fontFamily}`;
         if (ctx.font != style)
             ctx.font = style;
@@ -346,10 +353,12 @@ const Point_1 = __webpack_require__(/*! ../math/Point */ "./src/canvasDOM/math/P
 /**
  * 基础DOM
  */
+let hashCode = 0;
 class DOMBase {
     constructor() {
         //留下的扩展接口
         this.proxyHandle = (target, key, newData, proxy) => { };
+        this.hashCode = hashCode++;
         this.init();
         let self = this;
         this.proxy = new Proxy(this._style, {
@@ -633,6 +642,7 @@ class TransformMatrix extends Matrix_1.default {
         let c = -rotateS * scaleY;
         let d = rotateC * scaleY;
         this.setMatrix(a, b, c, d, tx, ty);
+        // this.translate(x,y).rotate(rotate).scale(scaleX,scaleY)
     }
     //转换坐标系
     changeCoordinate(point, scaleX = 1, scaleY = 1) {
@@ -641,6 +651,44 @@ class TransformMatrix extends Matrix_1.default {
     }
     value() {
         return this.data;
+    }
+    rotate(angle) {
+        // angle = +angle;
+        if (angle !== 0) {
+            let u = cos(angle);
+            let v = sin(angle);
+            let ta = this.a;
+            let tb = this.b;
+            let tc = this.c;
+            let td = this.d;
+            let ttx = this.e;
+            let tty = this.f;
+            this.data[0] = ta * u - tb * v;
+            this.data[1] = ta * v + tb * u;
+            this.data[2] = tc * u - td * v;
+            this.data[3] = tc * v + td * u;
+            this.data[4] = ttx * u - tty * v;
+            this.data[5] = ttx * v + tty * u;
+        }
+        return this;
+    }
+    scale(sx, sy) {
+        if (sx !== 1) {
+            this.data[0] *= sx;
+            this.data[2] *= sx;
+            this.data[4] *= sx;
+        }
+        if (sy !== 1) {
+            this.data[1] *= sy;
+            this.data[3] *= sy;
+            this.data[5] *= sy;
+        }
+        return this;
+    }
+    translate(dx, dy) {
+        this.data[4] += dx;
+        this.data[5] += dy;
+        return this;
     }
     static createTransFormMatrix(scaleX = 1, skewX = 0, skewY = 0, scaleY = 1, offsetX = 0, offsetY = 0) {
         let Matrix = pool.pop() || new TransformMatrix();
@@ -696,6 +744,8 @@ class Main {
         this.stage.appendChild(i);
         let p = new CImage_1.default();
         p.src = "./test.png";
+        p.style.anchorX = 50;
+        p.style.anchorY = 50;
         g.appendChild(p);
         let t = new CText_1.default();
         t.style.text = "你好";
@@ -709,17 +759,18 @@ class Main {
         t.style.anchorX = 30;
         t.style.anchorY = 15;
         setInterval(() => {
-            t.style.rotate++;
+            g.style.rotate++;
         }, 10);
         g.appendChild(t);
-        let temp = 0;
-        for (let k = 0; k < 100; k++) {
-            let img = new CText_1.default();
-            img.style.text = `text${k}`;
-            img.style.x = temp + k * 1;
-            img.style.y = temp + k * 3;
-            g.appendChild(img);
-        }
+        let g1 = new CDOMContainer_1.default();
+        g.appendChild(g1);
+        let i2 = new CImage_1.default;
+        i2.src = "./test.png";
+        g1.appendChild(i2);
+        i2.style.scaleX = .5;
+        setInterval(() => {
+            i2.style.rotate++;
+        }, 10);
     }
 }
 new Main();

@@ -4,6 +4,7 @@ import Point from "../math/Point";
 /**
  * 基础DOM
  */
+let hashCode:number = 0;
 export abstract class DOMBase {
     public type: string
     public _style: DOMStyleBase
@@ -15,7 +16,8 @@ export abstract class DOMBase {
     protected proxy: DOMStyleBase
     protected deep: number
     public matrix: TransformMatrix
-    public position: Point;//全局坐标
+    // public position: Point;//全局坐标
+    public hashCode:number
     public get style() {
         return this.proxy;
     }
@@ -25,6 +27,7 @@ export abstract class DOMBase {
     //留下的扩展接口
     protected proxyHandle: Function = <k extends keyof DOMStyleBase>(target: DOMStyleBase, key: k, newData: DOMStyleBase[k], proxy: DOMStyleBase) => { }
     constructor() {
+        this.hashCode = hashCode++
         this.init();
         let self = this;
         this.proxy = new Proxy(this._style, {
@@ -115,7 +118,7 @@ export abstract class DOMBase {
         this.reRender = true;
         this.listenerMap = {};
         this.matrix = TransformMatrix.createTransFormMatrix();
-        this.position = Point.createPiont();
+        // this.position = Point.createPiont();
     }
 
     protected reset(): void {

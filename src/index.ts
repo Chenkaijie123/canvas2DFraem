@@ -7,6 +7,7 @@ import TransformMatrix from "./canvasDOM/math/TransformMatrix";
 import CDocument from "./canvasDOM/DOM/CDocument";
 import CDOMContainer from "./canvasDOM/DOM/CDOMContainer";
 import CText from "./canvasDOM/DOM/CText";
+import { throttle } from "./canvasDOM/global/Global";
 
 class Main {
     private stage: CDocument
@@ -40,6 +41,8 @@ class Main {
         this.stage.appendChild(i);
         let p = new CImage();
         p.src = "./test.png"
+        p.style.anchorX = 50;
+        p.style.anchorY = 50
         g.appendChild(p);
         let t = new CText()
         t.style.text = "你好"
@@ -53,17 +56,19 @@ class Main {
         t.style.anchorX = 30
         t.style.anchorY = 15
         setInterval(()=>{
-            t.style.rotate++
+            g.style.rotate++
         },10)
         g.appendChild(t)
-        let temp = 0;
-        for(let k:number = 0 ; k < 100;k++){
-            let img = new CText()
-            img.style.text = `text${k}`
-            img.style.x = temp + k *1
-            img.style.y = temp + k *3
-            g.appendChild(img)
-        }
+        let g1 = new CDOMContainer();
+        g.appendChild(g1)
+        let i2 = new CImage
+        i2.src = "./test.png"
+        g1.appendChild(i2)
+        i2.style.scaleX = .5;
+        setInterval(()=>{
+            i2.style.rotate++
+        },10)
+  
 
     }
 }
