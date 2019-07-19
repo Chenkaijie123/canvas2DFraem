@@ -66,7 +66,7 @@ class Main {
         g1.appendChild(i2)
         i2.style.scaleX = .5;
         setInterval(()=>{
-            i2.style.rotate++
+            i2.style.x++
         },10)
   
 

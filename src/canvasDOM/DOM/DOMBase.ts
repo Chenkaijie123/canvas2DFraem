@@ -128,11 +128,11 @@ export abstract class DOMBase {
     public render(ctx: CanvasRenderingContext2D): void { }
 }
 
-interface DOMType {
-    CDocument: string
-    DOMBase: string
-    CImage: string
-}
+// interface DOMType {
+//     CDocument: string
+//     DOMBase: string
+//     CImage: string
+// }
 
 
 export interface DOMStyleBase {

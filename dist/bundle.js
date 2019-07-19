@@ -277,7 +277,6 @@ exports.default = CImage;
 Object.defineProperty(exports, "__esModule", { value: true });
 const DOMBase_1 = __webpack_require__(/*! ./DOMBase */ "./src/canvasDOM/DOM/DOMBase.ts");
 const TransformMatrix_1 = __webpack_require__(/*! ../math/TransformMatrix */ "./src/canvasDOM/math/TransformMatrix.ts");
-const Point_1 = __webpack_require__(/*! ../math/Point */ "./src/canvasDOM/math/Point.ts");
 class CText extends DOMBase_1.DOMBase {
     get style() {
         return this.proxy;
@@ -313,7 +312,7 @@ class CText extends DOMBase_1.DOMBase {
         this.reRender = true;
         this.listenerMap = {};
         this.matrix = TransformMatrix_1.default.createTransFormMatrix();
-        this.position = Point_1.default.createPiont();
+        // this.position = Point.createPiont();
     }
     render(ctx) {
         // ctx.setTransform(...this.matrix.value())
@@ -349,7 +348,6 @@ exports.default = CText;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const TransformMatrix_1 = __webpack_require__(/*! ../math/TransformMatrix */ "./src/canvasDOM/math/TransformMatrix.ts");
-const Point_1 = __webpack_require__(/*! ../math/Point */ "./src/canvasDOM/math/Point.ts");
 /**
  * 基础DOM
  */
@@ -448,7 +446,7 @@ class DOMBase {
         this.reRender = true;
         this.listenerMap = {};
         this.matrix = TransformMatrix_1.default.createTransFormMatrix();
-        this.position = Point_1.default.createPiont();
+        // this.position = Point.createPiont();
     }
     reset() {
     }
@@ -521,71 +519,6 @@ class Matrix {
     }
 }
 exports.default = Matrix;
-
-
-/***/ }),
-
-/***/ "./src/canvasDOM/math/Point.ts":
-/*!*************************************!*\
-  !*** ./src/canvasDOM/math/Point.ts ***!
-  \*************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const Matrix_1 = __webpack_require__(/*! ./Matrix */ "./src/canvasDOM/math/Matrix.ts");
-let pool = [];
-class Point extends Matrix_1.default {
-    constructor(x = 0, y = 0) {
-        super(x, y);
-    }
-    get x() {
-        return this.a;
-    }
-    set x(v) {
-        this.a = v;
-    }
-    get y() {
-        return this.b;
-    }
-    set y(v) {
-        this.b = v;
-    }
-    get value() {
-        return [this.a, this.b];
-    }
-    setPoint(x = 0, y = 0) {
-        this.setMatrix(x, y);
-    }
-    /**回收进对象池 */
-    release() {
-        this.setMatrix();
-        pool.push(this);
-    }
-    copy(p) {
-        this.data[0] = p.x;
-        this.data[1] = p.y;
-        return this;
-    }
-    /**
-     * 两点叠加，可实现平移或者坐标系转化
-     * @param point
-     */
-    add(point) {
-        this.data[0] += point.x;
-        this.data[1] += point.y;
-        return this;
-    }
-    /**创建点对象 */
-    static createPiont(x = 0, y = 0) {
-        let point = pool.pop() || new Point();
-        point.setMatrix(x, y);
-        return point;
-    }
-}
-exports.default = Point;
 
 
 /***/ }),
@@ -769,7 +702,7 @@ class Main {
         g1.appendChild(i2);
         i2.style.scaleX = .5;
         setInterval(() => {
-            i2.style.rotate++;
+            i2.style.x++;
         }, 10);
     }
 }
