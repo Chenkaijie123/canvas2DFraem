@@ -1,5 +1,6 @@
 import TransformMatrix from "../math/TransformMatrix";
 import Point from "../math/Point";
+import Matrix from "../math/Matrix";
 
 /**
  * 基础DOM
@@ -126,6 +127,51 @@ export abstract class DOMBase {
     }
 
     public render(ctx: CanvasRenderingContext2D): void { }
+
+    /**
+     * 把处于当前坐标系的point点装换为全局的坐标
+     * @param point 
+     */
+    public toGlobal(point:Point):Point{
+        let matrix = this.getMatrixMul();
+        let {x,y} = point;
+        let {a,b,c,d,e,f} = matrix;
+        matrix.release();
+        let tempY = y;
+        y = ((x - e)/a - (tempY - f)/b)/(c/a - d/b)
+        x = (tempY - f  - d*y)/b
+        point.x = x;
+        point.y = y;
+        return point;
+    }
+
+    public contain(_x:number,_y:number):boolean{
+        let {x,y,width,height} = this.style
+        return x <= _x && x + width >= _x &&
+                y <= _y && y + height <= _y
+    }
+
+    /**
+     * 获取该对象当前的转化矩阵
+     */
+    public getMatrixMul():TransformMatrix{
+        let temp:TransformMatrix[] = [this.matrix]
+        let t:DOMBase = this;
+        while(t.parent){
+            t = t.parent;
+            if(t.reRender){
+                t.matrix.setByStyle(t.style);//转换矩阵
+                t.reRender = false;
+            }
+            temp.push(t.matrix)
+        }
+        let matrix = temp.pop().clone();
+        let m:TransformMatrix;
+        while(m = temp.pop()){
+            matrix.MatrixMulti(m)
+        }
+        return matrix;
+    }
 }
 
 // interface DOMType {

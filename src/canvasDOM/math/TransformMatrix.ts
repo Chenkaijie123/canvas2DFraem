@@ -41,7 +41,7 @@ export default class TransformMatrix extends Matrix {
     }
 
     public setByStyle(style: DOMStyleBase): void {
-        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y} = style;
+        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y } = style;
         let rotateC = cos(rotate);
         let rotateS = sin(rotate);
         let tx = (x + anchorX) * scaleX;
@@ -54,8 +54,25 @@ export default class TransformMatrix extends Matrix {
         // this.translate(x,y).rotate(rotate).scale(scaleX,scaleY)
     }
 
+    /**
+     * 矩阵乘法，物理意义，实现物体的矩阵的叠加变换
+     * @param target 叠加的矩阵
+     */
+    public MatrixMulti(target: Matrix): this {
+        let [a2, b2, c2, d2, e2, f2] = [
+            this.a * target.a + this.c * target.b,
+            this.b * target.a + this.d * target.b,
+            this.a * target.c + this.c * target.d,
+            this.b * target.c + this.d * target.d,
+            this.a * target.e + this.c * target.f + this.e,
+            this.b * target.e + this.d * target.f + this.f
+        ]
+        this.setMatrix(a2, b2, c2, d2, e2, f2)
+        return this;
+    }
+
     //转换坐标系
-    public changeCoordinate(point: Point,scaleX:number = 1,scaleY :number = 1): void {
+    public changeCoordinate(point: Point, scaleX: number = 1, scaleY: number = 1): void {
         this.data[4] += point.x * scaleX;
         this.data[5] += point.y * scaleY;
     }
@@ -80,7 +97,7 @@ export default class TransformMatrix extends Matrix {
             this.data[2] = tc * u - td * v;
             this.data[3] = tc * v + td * u;
             this.data[4] = ttx * u - tty * v;
-            this.data[5]= ttx * v + tty * u;
+            this.data[5] = ttx * v + tty * u;
         }
         return this;
     }
@@ -105,6 +122,18 @@ export default class TransformMatrix extends Matrix {
         return this;
     }
 
+    public copy(m:TransformMatrix):this{
+        this.setMatrix(...m.value());
+        return this;
+    }
+    public clone():TransformMatrix{
+        return TransformMatrix.createTransFormMatrix(...this.value())
+    }
+
+    public release():void{
+        this.setMatrix();
+        pool.push(this);
+    }
     public static createTransFormMatrix(scaleX = 1, skewX = 0, skewY = 0, scaleY = 1, offsetX = 0, offsetY = 0): TransformMatrix {
         let Matrix: TransformMatrix = pool.pop() || new TransformMatrix();
         Matrix.setTransformMatrix(scaleX, skewX, skewY, scaleY, offsetX, offsetY);

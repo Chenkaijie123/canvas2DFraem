@@ -52,4 +52,6 @@ export default class Matrix{
     public getMartrix():[number,number,number,number,number,number]{
         return this.data;
     }
+
+
 }

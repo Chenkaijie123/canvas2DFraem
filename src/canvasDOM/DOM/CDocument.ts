@@ -8,7 +8,7 @@ export default class CDocument extends CDOMContainer {
     private context:CanvasRenderingContext2D;
     constructor() {
         super();
-        this.parent = this;
+        this.parent = null;
     }
 
     private initCanvas():void{
@@ -17,6 +17,21 @@ export default class CDocument extends CDOMContainer {
         canvas.width = 1000;
         canvas.height = 600;
         canvas.id = "canvas"
+        canvas.addEventListener("mousedown",(e)=>{
+            let x = e.clientX
+            let y = e.clientY
+            let list = this.iterator(this.children,(v)=>{
+                let p = v.toGlobal(Point.createPiont(x,y))
+                let res = v.contain(p.x,p.y) 
+                p.release();
+                if(res){
+                    return this;
+                }
+                // return undefined;
+            })
+            console.log(list)
+            
+        })
         document.body.appendChild(canvas);
         this.context = canvas.getContext("2d");
     }
@@ -65,12 +80,7 @@ export default class CDocument extends CDOMContainer {
             //重新计算需要重绘的数据
             if(e.reRender) {
                 let style = e.style
-                // let p = Point.createPiont(style.x,style.y);
-                // p.add(e.parent.position);
-                // e.position.copy(p);
-                // p.release();
                 e.matrix.setByStyle(style);//转换矩阵
-                // e.matrix.changeCoordinate(e.position,style.scaleX,style.scaleY);
                 e.reRender = false;
             }
             if(e.parent instanceof CDocument){
@@ -80,8 +90,8 @@ export default class CDocument extends CDOMContainer {
             }
             e.render(this.context);
         }
-        let t = Date.now()
+        // let t = Date.now()
         this.iterator(loot,fn);
-        console.log(Date.now() - t)
+        // console.log(Date.now() - t)
     }
 }

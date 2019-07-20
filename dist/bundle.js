@@ -136,11 +136,12 @@ exports.default = CDOMContainer;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const CDOMContainer_1 = __webpack_require__(/*! ./CDOMContainer */ "./src/canvasDOM/DOM/CDOMContainer.ts");
+const Point_1 = __webpack_require__(/*! ../math/Point */ "./src/canvasDOM/math/Point.ts");
 /**虚拟文本 */
 class CDocument extends CDOMContainer_1.default {
     constructor() {
         super();
-        this.parent = this;
+        this.parent = null;
     }
     initCanvas() {
         let canvas = document.createElement("canvas");
@@ -148,6 +149,20 @@ class CDocument extends CDOMContainer_1.default {
         canvas.width = 1000;
         canvas.height = 600;
         canvas.id = "canvas";
+        canvas.addEventListener("mousedown", (e) => {
+            let x = e.clientX;
+            let y = e.clientY;
+            let list = this.iterator(this.children, (v) => {
+                let p = v.toGlobal(Point_1.default.createPiont(x, y));
+                let res = v.contain(p.x, p.y);
+                p.release();
+                if (res) {
+                    return this;
+                }
+                // return undefined;
+            });
+            console.log(list);
+        });
         document.body.appendChild(canvas);
         this.context = canvas.getContext("2d");
     }
@@ -188,12 +203,7 @@ class CDocument extends CDOMContainer_1.default {
             //重新计算需要重绘的数据
             if (e.reRender) {
                 let style = e.style;
-                // let p = Point.createPiont(style.x,style.y);
-                // p.add(e.parent.position);
-                // e.position.copy(p);
-                // p.release();
                 e.matrix.setByStyle(style); //转换矩阵
-                // e.matrix.changeCoordinate(e.position,style.scaleX,style.scaleY);
                 e.reRender = false;
             }
             if (e.parent instanceof CDocument) {
@@ -204,9 +214,9 @@ class CDocument extends CDOMContainer_1.default {
             }
             e.render(this.context);
         };
-        let t = Date.now();
+        // let t = Date.now()
         this.iterator(loot, fn);
-        console.log(Date.now() - t);
+        // console.log(Date.now() - t)
     }
 }
 exports.default = CDocument;
@@ -261,78 +271,6 @@ class CImage extends DOMBase_1.DOMBase {
     }
 }
 exports.default = CImage;
-
-
-/***/ }),
-
-/***/ "./src/canvasDOM/DOM/CText.ts":
-/*!************************************!*\
-  !*** ./src/canvasDOM/DOM/CText.ts ***!
-  \************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const DOMBase_1 = __webpack_require__(/*! ./DOMBase */ "./src/canvasDOM/DOM/DOMBase.ts");
-const TransformMatrix_1 = __webpack_require__(/*! ../math/TransformMatrix */ "./src/canvasDOM/math/TransformMatrix.ts");
-class CText extends DOMBase_1.DOMBase {
-    get style() {
-        return this.proxy;
-    }
-    set style(v) {
-        this._style = v;
-    }
-    init() {
-        this.style = {
-            x: 0,
-            y: 0,
-            scaleX: 1,
-            scaleY: 1,
-            visible: true,
-            alpha: 1,
-            width: 0,
-            height: 0,
-            anchorX: 0,
-            anchorY: 0,
-            rotate: 0,
-            skewX: 0,
-            skewY: 0,
-            fontSize: 24,
-            fontFamily: "微软雅黑",
-            textColor: 0xffffff,
-            border: 0,
-            borderColor: null,
-            bold: false,
-            text: "",
-            textAlign: "left",
-            fontStyle: "normal",
-        };
-        this.reRender = true;
-        this.listenerMap = {};
-        this.matrix = TransformMatrix_1.default.createTransFormMatrix();
-        // this.position = Point.createPiont();
-    }
-    render(ctx) {
-        // ctx.setTransform(...this.matrix.value())
-        let style = `${this.style.fontStyle} normal ${this.style.bold ? "bold" : "normal"} ${this.style.fontSize}px ${this.style.fontFamily}`;
-        if (ctx.font != style)
-            ctx.font = style;
-        let color = `#${this.style.textColor.toString(16)}`;
-        if (ctx.fillStyle != color)
-            ctx.fillStyle = color;
-        ctx.fillText(this.style.text, this.style.anchorX, this.style.anchorY);
-        if (this.style.border > 0) {
-            color = `#${this.style.borderColor.toString(16)}`;
-            if (ctx.strokeStyle != color)
-                ctx.strokeStyle = color;
-            ctx.strokeText(this.style.text, this.style.anchorX, this.style.anchorY);
-        }
-        // console.log(ctx.measureText(this.style.text))
-    }
-}
-exports.default = CText;
 
 
 /***/ }),
@@ -451,6 +389,48 @@ class DOMBase {
     reset() {
     }
     render(ctx) { }
+    /**
+     * 把处于当前坐标系的point点装换为全局的坐标
+     * @param point
+     */
+    toGlobal(point) {
+        let matrix = this.getMatrixMul();
+        let { x, y } = point;
+        let { a, b, c, d, e, f } = matrix;
+        matrix.release();
+        let tempY = y;
+        y = ((x - e) / a - (tempY - f) / b) / (c / a - d / b);
+        x = (tempY - f - d * y) / b;
+        point.x = x;
+        point.y = y;
+        return point;
+    }
+    contain(_x, _y) {
+        let { x, y, width, height } = this.style;
+        return x <= _x && x + width >= _x &&
+            y <= _y && y + height <= _y;
+    }
+    /**
+     * 获取该对象当前的转化矩阵
+     */
+    getMatrixMul() {
+        let temp = [this.matrix];
+        let t = this;
+        while (t.parent) {
+            t = t.parent;
+            if (t.reRender) {
+                t.matrix.setByStyle(t.style); //转换矩阵
+                t.reRender = false;
+            }
+            temp.push(t.matrix);
+        }
+        let matrix = temp.pop().clone();
+        let m;
+        while (m = temp.pop()) {
+            matrix.MatrixMulti(m);
+        }
+        return matrix;
+    }
 }
 exports.DOMBase = DOMBase;
 
@@ -523,6 +503,71 @@ exports.default = Matrix;
 
 /***/ }),
 
+/***/ "./src/canvasDOM/math/Point.ts":
+/*!*************************************!*\
+  !*** ./src/canvasDOM/math/Point.ts ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Matrix_1 = __webpack_require__(/*! ./Matrix */ "./src/canvasDOM/math/Matrix.ts");
+let pool = [];
+class Point extends Matrix_1.default {
+    constructor(x = 0, y = 0) {
+        super(x, y);
+    }
+    get x() {
+        return this.a;
+    }
+    set x(v) {
+        this.a = v;
+    }
+    get y() {
+        return this.b;
+    }
+    set y(v) {
+        this.b = v;
+    }
+    get value() {
+        return [this.a, this.b];
+    }
+    setPoint(x = 0, y = 0) {
+        this.setMatrix(x, y);
+    }
+    /**回收进对象池 */
+    release() {
+        this.setMatrix();
+        pool.push(this);
+    }
+    copy(p) {
+        this.data[0] = p.x;
+        this.data[1] = p.y;
+        return this;
+    }
+    /**
+     * 两点叠加，可实现平移或者坐标系转化
+     * @param point
+     */
+    add(point) {
+        this.data[0] += point.x;
+        this.data[1] += point.y;
+        return this;
+    }
+    /**创建点对象 */
+    static createPiont(x = 0, y = 0) {
+        let point = pool.pop() || new Point();
+        point.setMatrix(x, y);
+        return point;
+    }
+}
+exports.default = Point;
+
+
+/***/ }),
+
 /***/ "./src/canvasDOM/math/TransformMatrix.ts":
 /*!***********************************************!*\
   !*** ./src/canvasDOM/math/TransformMatrix.ts ***!
@@ -577,6 +622,22 @@ class TransformMatrix extends Matrix_1.default {
         this.setMatrix(a, b, c, d, tx, ty);
         // this.translate(x,y).rotate(rotate).scale(scaleX,scaleY)
     }
+    /**
+     * 矩阵乘法，物理意义，实现物体的矩阵的叠加变换
+     * @param target 叠加的矩阵
+     */
+    MatrixMulti(target) {
+        let [a2, b2, c2, d2, e2, f2] = [
+            this.a * target.a + this.c * target.b,
+            this.b * target.a + this.d * target.b,
+            this.a * target.c + this.c * target.d,
+            this.b * target.c + this.d * target.d,
+            this.a * target.e + this.c * target.f + this.e,
+            this.b * target.e + this.d * target.f + this.f
+        ];
+        this.setMatrix(a2, b2, c2, d2, e2, f2);
+        return this;
+    }
     //转换坐标系
     changeCoordinate(point, scaleX = 1, scaleY = 1) {
         this.data[4] += point.x * scaleX;
@@ -623,6 +684,17 @@ class TransformMatrix extends Matrix_1.default {
         this.data[5] += dy;
         return this;
     }
+    copy(m) {
+        this.setMatrix(...m.value());
+        return this;
+    }
+    clone() {
+        return TransformMatrix.createTransFormMatrix(...this.value());
+    }
+    release() {
+        this.setMatrix();
+        pool.push(this);
+    }
     static createTransFormMatrix(scaleX = 1, skewX = 0, skewY = 0, scaleY = 1, offsetX = 0, offsetY = 0) {
         let Matrix = pool.pop() || new TransformMatrix();
         Matrix.setTransformMatrix(scaleX, skewX, skewY, scaleY, offsetX, offsetY);
@@ -646,8 +718,6 @@ exports.default = TransformMatrix;
 Object.defineProperty(exports, "__esModule", { value: true });
 const CImage_1 = __webpack_require__(/*! ./canvasDOM/DOM/CImage */ "./src/canvasDOM/DOM/CImage.ts");
 const CDocument_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDocument */ "./src/canvasDOM/DOM/CDocument.ts");
-const CDOMContainer_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDOMContainer */ "./src/canvasDOM/DOM/CDOMContainer.ts");
-const CText_1 = __webpack_require__(/*! ./canvasDOM/DOM/CText */ "./src/canvasDOM/DOM/CText.ts");
 class Main {
     constructor() {
         this.stage = new CDocument_1.default();
@@ -663,10 +733,10 @@ class Main {
         loop();
     }
     test() {
-        let g = new CDOMContainer_1.default();
-        g.style.x = 50;
-        g.style.y = 50;
-        this.stage.appendChild(g);
+        // let g = new CDOMContainer();
+        // g.style.x = 50
+        // g.style.y = 50
+        // this.stage.appendChild(g);
         let i = new CImage_1.default();
         i.src = "./test1.jpeg";
         i.style.x = 0;
@@ -675,35 +745,35 @@ class Main {
         i.style.anchorX = 112;
         i.style.anchorY = 84;
         this.stage.appendChild(i);
-        let p = new CImage_1.default();
-        p.src = "./test.png";
-        p.style.anchorX = 50;
-        p.style.anchorY = 50;
-        g.appendChild(p);
-        let t = new CText_1.default();
-        t.style.text = "你好";
-        t.style.fontFamily = "Arial";
-        t.style.x = 300;
-        t.style.textColor = 0xFFF9E2;
-        t.style.border = 2;
-        t.style.borderColor = 0x000000;
-        t.style.rotate = 30;
-        t.style.fontSize = 30;
-        t.style.anchorX = 30;
-        t.style.anchorY = 15;
-        setInterval(() => {
-            g.style.rotate++;
-        }, 10);
-        g.appendChild(t);
-        let g1 = new CDOMContainer_1.default();
-        g.appendChild(g1);
-        let i2 = new CImage_1.default;
-        i2.src = "./test.png";
-        g1.appendChild(i2);
-        i2.style.scaleX = .5;
-        setInterval(() => {
-            i2.style.x++;
-        }, 10);
+        // let p = new CImage();
+        // p.src = "./test.png"
+        // p.style.anchorX = 50;
+        // p.style.anchorY = 50
+        // g.appendChild(p);
+        // let t = new CText()
+        // t.style.text = "你好"
+        // t.style.fontFamily = "Arial"
+        // t.style.x = 300
+        // t.style.textColor = 0xFFF9E2
+        // t.style.border = 2;
+        // t.style.borderColor = 0x000000
+        // t.style.rotate = 30
+        // t.style.fontSize = 30;
+        // t.style.anchorX = 30
+        // t.style.anchorY = 15
+        // setInterval(()=>{
+        //     g.style.rotate++
+        // },10)
+        // g.appendChild(t)
+        // let g1 = new CDOMContainer();
+        // g.appendChild(g1)
+        // let i2 = new CImage
+        // i2.src = "./test.png"
+        // g1.appendChild(i2)
+        // i2.style.scaleX = .5;
+        // setInterval(()=>{
+        //     i2.style.x++
+        // },10)
     }
 }
 new Main();
