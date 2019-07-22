@@ -17,6 +17,7 @@ export default class Context{
 
     public init(ctx:CanvasRenderingContext2D):void{
         this._ctx = ctx;
+   
     }
 
 }

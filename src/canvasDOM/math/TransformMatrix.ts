@@ -81,46 +81,46 @@ export default class TransformMatrix extends Matrix {
         return this.data;
     }
 
-    public rotate(angle: number): this {
-        // angle = +angle;
-        if (angle !== 0) {
-            let u = cos(angle);
-            let v = sin(angle);
-            let ta = this.a;
-            let tb = this.b;
-            let tc = this.c;
-            let td = this.d;
-            let ttx = this.e;
-            let tty = this.f;
-            this.data[0] = ta * u - tb * v;
-            this.data[1] = ta * v + tb * u;
-            this.data[2] = tc * u - td * v;
-            this.data[3] = tc * v + td * u;
-            this.data[4] = ttx * u - tty * v;
-            this.data[5] = ttx * v + tty * u;
-        }
-        return this;
-    }
+    // public rotate(angle: number): this {
+    //     // angle = +angle;
+    //     if (angle !== 0) {
+    //         let u = cos(angle);
+    //         let v = sin(angle);
+    //         let ta = this.a;
+    //         let tb = this.b;
+    //         let tc = this.c;
+    //         let td = this.d;
+    //         let ttx = this.e;
+    //         let tty = this.f;
+    //         this.data[0] = ta * u - tb * v;
+    //         this.data[1] = ta * v + tb * u;
+    //         this.data[2] = tc * u - td * v;
+    //         this.data[3] = tc * v + td * u;
+    //         this.data[4] = ttx * u - tty * v;
+    //         this.data[5] = ttx * v + tty * u;
+    //     }
+    //     return this;
+    // }
 
-    public scale(sx: number, sy: number): this {
-        if (sx !== 1) {
-            this.data[0] *= sx;
-            this.data[2] *= sx;
-            this.data[4] *= sx;
-        }
-        if (sy !== 1) {
-            this.data[1] *= sy;
-            this.data[3] *= sy;
-            this.data[5] *= sy;
-        }
-        return this;
-    }
+    // public scale(sx: number, sy: number): this {
+    //     if (sx !== 1) {
+    //         this.data[0] *= sx;
+    //         this.data[2] *= sx;
+    //         this.data[4] *= sx;
+    //     }
+    //     if (sy !== 1) {
+    //         this.data[1] *= sy;
+    //         this.data[3] *= sy;
+    //         this.data[5] *= sy;
+    //     }
+    //     return this;
+    // }
 
-    public translate(dx: number, dy: number): this {
-        this.data[4] += dx;
-        this.data[5] += dy;
-        return this;
-    }
+    // public translate(dx: number, dy: number): this {
+    //     this.data[4] += dx;
+    //     this.data[5] += dy;
+    //     return this;
+    // }
 
     public copy(m:TransformMatrix):this{
         this.setMatrix(...m.value());
