@@ -83,6 +83,9 @@ export default class CDocument extends CDOMContainer {
                 e.matrix.setByStyle(style);//转换矩阵
                 e.reRender = false;
             }
+            ///-------test------------
+            // e.matrix.setMatrix(2,0,0,1,112,100)
+            //-----------------------
             if(e.parent instanceof CDocument){
                 this.context.setTransform(...e.matrix.value());
             }else{

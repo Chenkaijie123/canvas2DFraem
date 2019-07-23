@@ -206,6 +206,9 @@ class CDocument extends CDOMContainer_1.default {
                 e.matrix.setByStyle(style); //转换矩阵
                 e.reRender = false;
             }
+            ///-------test------------
+            // e.matrix.setMatrix(2,0,0,1,112,100)
+            //-----------------------
             if (e.parent instanceof CDocument) {
                 this.context.setTransform(...e.matrix.value());
             }
@@ -266,8 +269,8 @@ class CImage extends DOMBase_1.DOMBase {
         this.treasure = new Image();
     }
     render(ctx) {
-        // ctx.setTransform(...this.matrix.value())
-        ctx.drawImage(this.treasure, -this.style.anchorX, -this.style.anchorY);
+        let { width, height, x, y, anchorX, anchorY } = this.style;
+        ctx.drawImage(this.treasure, anchorX, anchorY);
     }
 }
 exports.default = CImage;
@@ -398,17 +401,34 @@ class DOMBase {
         let { x, y } = point;
         let { a, b, c, d, e, f } = matrix;
         matrix.release();
-        let tempY = y;
-        y = ((x - e) / a - (tempY - f) / b) / (c / a - d / b);
-        x = (tempY - f - d * y) / b;
-        point.x = x;
-        point.y = y;
+        // let tempY = y;
+        // y = ((x - e)/a - (tempY - f)/b)/(c/a - d/b)
+        // x = (tempY - f  - d*y)/b
+        let res = this.calc(a, b, c, d, e, f, x, y);
+        point.x = res[0];
+        point.y = res[1];
         return point;
     }
+    calc(a, b, c, d, e, f, x, y) {
+        let [_x, _y] = [-1, -1];
+        if (a == 0) {
+            if (b == 0 || c == 0) { //一般为不可能事件
+            }
+            else {
+                _y = (x - e) / c;
+                _x = (y - f - c * _y) / b;
+            }
+        }
+        else {
+            _y = (y - a * (b * x - b * e) - f) / (d - b * c / a);
+            _x = (x - e - c * _y) / a;
+        }
+        return [_x, _y];
+    }
     contain(_x, _y) {
-        let { x, y, width, height } = this.style;
-        return x <= _x && x + width >= _x &&
-            y <= _y && y + height <= _y;
+        let { x, y, width, height, anchorX, anchorY } = this.style;
+        return x - anchorX <= _x && x + width - anchorX >= _x &&
+            y - anchorY <= _y && y + height - anchorY <= _y;
     }
     /**
      * 获取该对象当前的转化矩阵
@@ -613,8 +633,8 @@ class TransformMatrix extends Matrix_1.default {
         let { rotate, scaleX, scaleY, anchorX, anchorY, x, y } = style;
         let rotateC = cos(rotate);
         let rotateS = sin(rotate);
-        let tx = (x + anchorX) * scaleX;
-        let ty = (y + anchorY) * scaleY;
+        let tx = x * scaleX;
+        let ty = y * scaleY;
         let a = rotateC * scaleX;
         let b = rotateS * scaleX;
         let c = -rotateS * scaleY;
@@ -646,44 +666,44 @@ class TransformMatrix extends Matrix_1.default {
     value() {
         return this.data;
     }
-    rotate(angle) {
-        // angle = +angle;
-        if (angle !== 0) {
-            let u = cos(angle);
-            let v = sin(angle);
-            let ta = this.a;
-            let tb = this.b;
-            let tc = this.c;
-            let td = this.d;
-            let ttx = this.e;
-            let tty = this.f;
-            this.data[0] = ta * u - tb * v;
-            this.data[1] = ta * v + tb * u;
-            this.data[2] = tc * u - td * v;
-            this.data[3] = tc * v + td * u;
-            this.data[4] = ttx * u - tty * v;
-            this.data[5] = ttx * v + tty * u;
-        }
-        return this;
-    }
-    scale(sx, sy) {
-        if (sx !== 1) {
-            this.data[0] *= sx;
-            this.data[2] *= sx;
-            this.data[4] *= sx;
-        }
-        if (sy !== 1) {
-            this.data[1] *= sy;
-            this.data[3] *= sy;
-            this.data[5] *= sy;
-        }
-        return this;
-    }
-    translate(dx, dy) {
-        this.data[4] += dx;
-        this.data[5] += dy;
-        return this;
-    }
+    // public rotate(angle: number): this {
+    //     // angle = +angle;
+    //     if (angle !== 0) {
+    //         let u = cos(angle);
+    //         let v = sin(angle);
+    //         let ta = this.a;
+    //         let tb = this.b;
+    //         let tc = this.c;
+    //         let td = this.d;
+    //         let ttx = this.e;
+    //         let tty = this.f;
+    //         this.data[0] = ta * u - tb * v;
+    //         this.data[1] = ta * v + tb * u;
+    //         this.data[2] = tc * u - td * v;
+    //         this.data[3] = tc * v + td * u;
+    //         this.data[4] = ttx * u - tty * v;
+    //         this.data[5] = ttx * v + tty * u;
+    //     }
+    //     return this;
+    // }
+    // public scale(sx: number, sy: number): this {
+    //     if (sx !== 1) {
+    //         this.data[0] *= sx;
+    //         this.data[2] *= sx;
+    //         this.data[4] *= sx;
+    //     }
+    //     if (sy !== 1) {
+    //         this.data[1] *= sy;
+    //         this.data[3] *= sy;
+    //         this.data[5] *= sy;
+    //     }
+    //     return this;
+    // }
+    // public translate(dx: number, dy: number): this {
+    //     this.data[4] += dx;
+    //     this.data[5] += dy;
+    //     return this;
+    // }
     copy(m) {
         this.setMatrix(...m.value());
         return this;
@@ -737,6 +757,9 @@ class Main {
         // g.style.x = 50
         // g.style.y = 50
         // this.stage.appendChild(g);
+        let i1 = new CImage_1.default();
+        i1.src = "./test1.jpeg";
+        this.stage.appendChild(i1);
         let i = new CImage_1.default();
         i.src = "./test1.jpeg";
         i.style.x = 0;

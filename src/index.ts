@@ -31,6 +31,11 @@ class Main {
         // g.style.x = 50
         // g.style.y = 50
         // this.stage.appendChild(g);
+
+        let i1 = new CImage();
+        i1.src = "./test1.jpeg"
+        this.stage.appendChild(i1);
+
         let i = new CImage();
         i.src = "./test1.jpeg"
         i.style.x = 0;
@@ -39,6 +44,8 @@ class Main {
         i.style.anchorX = 112;
         i.style.anchorY = 84
         this.stage.appendChild(i);
+
+   
         // let p = new CImage();
         // p.src = "./test.png"
         // p.style.anchorX = 50;

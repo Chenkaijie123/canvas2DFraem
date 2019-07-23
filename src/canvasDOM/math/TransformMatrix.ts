@@ -44,8 +44,8 @@ export default class TransformMatrix extends Matrix {
         let { rotate, scaleX, scaleY, anchorX, anchorY, x, y } = style;
         let rotateC = cos(rotate);
         let rotateS = sin(rotate);
-        let tx = (x + anchorX) * scaleX;
-        let ty = (y + anchorY) * scaleY;
+        let tx = x * scaleX;
+        let ty = y * scaleY;
         let a = rotateC * scaleX;
         let b = rotateS * scaleX;
         let c = -rotateS * scaleY;

@@ -137,18 +137,35 @@ export abstract class DOMBase {
         let {x,y} = point;
         let {a,b,c,d,e,f} = matrix;
         matrix.release();
-        let tempY = y;
-        y = ((x - e)/a - (tempY - f)/b)/(c/a - d/b)
-        x = (tempY - f  - d*y)/b
-        point.x = x;
-        point.y = y;
+        // let tempY = y;
+        // y = ((x - e)/a - (tempY - f)/b)/(c/a - d/b)
+        // x = (tempY - f  - d*y)/b
+        let res = this.calc(a,b,c,d,e,f,x,y)
+        point.x = res[0];
+        point.y = res[1];
         return point;
     }
 
+    public calc(a:number,b:number,c:number,d:number,e:number,f:number,x:number,y:number){
+        let [_x,_y] = [-1,-1];
+        if(a == 0){
+            if(b == 0 || c == 0){//一般为不可能事件
+                
+            }else{
+                _y = (x - e)/c;
+                _x = (y - f - c*_y)/b;
+             }
+        }else{
+            _y = (y - a*(b*x - b*e) - f) / (d - b* c /a)
+            _x = (x - e - c * _y)/a;
+        }
+        return [_x,_y];
+    }
+
     public contain(_x:number,_y:number):boolean{
-        let {x,y,width,height} = this.style
-        return x <= _x && x + width >= _x &&
-                y <= _y && y + height <= _y
+        let {x,y,width,height,anchorX,anchorY} = this.style
+        return x - anchorX <= _x && x + width - anchorX >= _x &&
+                y - anchorY <= _y && y + height - anchorY <= _y
     }
 
     /**
