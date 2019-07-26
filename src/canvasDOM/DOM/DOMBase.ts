@@ -146,7 +146,8 @@ export abstract class DOMBase {
         return point;
     }
 
-    public calc(a:number,b:number,c:number,d:number,e:number,f:number,x:number,y:number){
+    /**计算矩阵方程 */
+    public calc(a:number,b:number,c:number,d:number,e:number,f:number,x:number,y:number):[number,number]{
         let [_x,_y] = [-1,-1];
         if(a == 0){
             if(b == 0 || c == 0){//一般为不可能事件
@@ -163,9 +164,8 @@ export abstract class DOMBase {
     }
 
     public contain(_x:number,_y:number):boolean{
-        let {x,y,width,height,anchorX,anchorY} = this.style
-        return x - anchorX <= _x && x + width - anchorX >= _x &&
-                y - anchorY <= _y && y + height - anchorY <= _y
+        let {width,height} = this.style
+        return _x >= 0 && width >= _x && _y >= 0 && height >= _y
     }
 
     /**

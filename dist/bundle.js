@@ -150,6 +150,7 @@ class CDocument extends CDOMContainer_1.default {
         canvas.height = 600;
         canvas.id = "canvas";
         canvas.addEventListener("mousedown", (e) => {
+            //简易实现点击效果
             let x = e.clientX;
             let y = e.clientY;
             let list = this.iterator(this.children, (v) => {
@@ -157,9 +158,8 @@ class CDocument extends CDOMContainer_1.default {
                 let res = v.contain(p.x, p.y);
                 p.release();
                 if (res) {
-                    return this;
+                    return v;
                 }
-                // return undefined;
             });
             console.log(list);
         });
@@ -270,7 +270,7 @@ class CImage extends DOMBase_1.DOMBase {
     }
     render(ctx) {
         let { width, height, x, y, anchorX, anchorY } = this.style;
-        ctx.drawImage(this.treasure, anchorX, anchorY);
+        ctx.drawImage(this.treasure, 0, 0);
     }
 }
 exports.default = CImage;
@@ -409,6 +409,7 @@ class DOMBase {
         point.y = res[1];
         return point;
     }
+    /**计算矩阵方程 */
     calc(a, b, c, d, e, f, x, y) {
         let [_x, _y] = [-1, -1];
         if (a == 0) {
@@ -426,9 +427,8 @@ class DOMBase {
         return [_x, _y];
     }
     contain(_x, _y) {
-        let { x, y, width, height, anchorX, anchorY } = this.style;
-        return x - anchorX <= _x && x + width - anchorX >= _x &&
-            y - anchorY <= _y && y + height - anchorY <= _y;
+        let { scaleX, scaleY, width, height, anchorX, anchorY } = this.style;
+        return _x >= 0 && width >= _x && _y >= 0 && height >= _y;
     }
     /**
      * 获取该对象当前的转化矩阵
@@ -630,20 +630,34 @@ class TransformMatrix extends Matrix_1.default {
         this.setMatrix(scaleX, skewX, skewY, scaleY, offsetX, offsetY);
     }
     setByStyle(style) {
-        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y } = style;
+        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y, width, height } = style;
         let rotateC = cos(rotate);
         let rotateS = sin(rotate);
-        let tx = x * scaleX;
-        let ty = y * scaleY;
+        let tx = x * scaleX; //(x - anchorX) * scaleX;
+        let ty = y * scaleY; //(y - anchorY) * scaleY;
         let a = rotateC * scaleX;
         let b = rotateS * scaleX;
         let c = -rotateS * scaleY;
         let d = rotateC * scaleY;
+        //锚点实现，设置锚点不影响x,y位置，只是固定相对于显示对象（0，0）点，用于旋转
+        if (anchorX != 0 || anchorY != 0) {
+            let ancX = anchorX;
+            let ancY = anchorY;
+            let sx = ancX * a + c * ancY + tx; //不设锚点会移动到的位置
+            let sy = ancX * b + d * ancY + ty;
+            tx = tx + tx - (sx - ancX * scaleX);
+            ty = ty + ty - (sy - ancY * scaleY);
+        }
         this.setMatrix(a, b, c, d, tx, ty);
-        // this.translate(x,y).rotate(rotate).scale(scaleX,scaleY)
+        //---------------------------------利用矩阵叠加实现-----------------------------------------
+        // let matrix = this.translateMatrix(x - anchorX,y - anchorY);
+        // if(rotate != 0) matrix.MatrixMulti(this.rotateMatrix(rotate));
+        // if(scaleX != 1 || scaleY != 1) matrix.MatrixMulti(this.scaleMatrix(scaleX,scaleY));
+        // this.setMatrix(...matrix.value());
     }
     /**
      * 矩阵乘法，物理意义，实现物体的矩阵的叠加变换
+     * 直接改变当前矩阵
      * @param target 叠加的矩阵
      */
     MatrixMulti(target) {
@@ -666,44 +680,20 @@ class TransformMatrix extends Matrix_1.default {
     value() {
         return this.data;
     }
-    // public rotate(angle: number): this {
-    //     // angle = +angle;
-    //     if (angle !== 0) {
-    //         let u = cos(angle);
-    //         let v = sin(angle);
-    //         let ta = this.a;
-    //         let tb = this.b;
-    //         let tc = this.c;
-    //         let td = this.d;
-    //         let ttx = this.e;
-    //         let tty = this.f;
-    //         this.data[0] = ta * u - tb * v;
-    //         this.data[1] = ta * v + tb * u;
-    //         this.data[2] = tc * u - td * v;
-    //         this.data[3] = tc * v + td * u;
-    //         this.data[4] = ttx * u - tty * v;
-    //         this.data[5] = ttx * v + tty * u;
-    //     }
-    //     return this;
-    // }
-    // public scale(sx: number, sy: number): this {
-    //     if (sx !== 1) {
-    //         this.data[0] *= sx;
-    //         this.data[2] *= sx;
-    //         this.data[4] *= sx;
-    //     }
-    //     if (sy !== 1) {
-    //         this.data[1] *= sy;
-    //         this.data[3] *= sy;
-    //         this.data[5] *= sy;
-    //     }
-    //     return this;
-    // }
-    // public translate(dx: number, dy: number): this {
-    //     this.data[4] += dx;
-    //     this.data[5] += dy;
-    //     return this;
-    // }
+    rotateMatrix(angle) {
+        angle = +angle;
+        let [s, c] = angle !== 0 ? [cos(angle), sin(angle)] : [0, 1];
+        let matrix = TransformMatrix.createTransFormMatrix(c, s, -s, c, 0, 0);
+        return matrix;
+    }
+    scaleMatrix(sx, sy) {
+        let matrix = TransformMatrix.createTransFormMatrix(sx, 0, 0, sy, 0, 0);
+        return matrix;
+    }
+    translateMatrix(dx, dy) {
+        let matrix = TransformMatrix.createTransFormMatrix(1, 0, 0, 1, dx, dy);
+        return matrix;
+    }
     copy(m) {
         this.setMatrix(...m.value());
         return this;
@@ -756,18 +746,25 @@ class Main {
         // let g = new CDOMContainer();
         // g.style.x = 50
         // g.style.y = 50
+        // g.style.width = g.style.height = 600
         // this.stage.appendChild(g);
-        let i1 = new CImage_1.default();
-        i1.src = "./test1.jpeg";
-        this.stage.appendChild(i1);
+        // let i1 = new CImage();
+        // i1.src = "./test1.jpeg"
+        // i1.style.x = 300;
+        // i1.style.y = 300;
+        // this.stage.appendChild(i1);
         let i = new CImage_1.default();
         i.src = "./test1.jpeg";
-        i.style.x = 0;
-        i.style.y = 0;
+        i.style.x = 300;
+        i.style.y = 300;
+        // i.style.scaleX = .5
         i.style.rotate = 45;
         i.style.anchorX = 112;
         i.style.anchorY = 84;
         this.stage.appendChild(i);
+        // setInterval(()=>{
+        //     i.style.rotate ++
+        // },50)
         // let p = new CImage();
         // p.src = "./test.png"
         // p.style.anchorX = 50;

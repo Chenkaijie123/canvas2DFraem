@@ -18,6 +18,7 @@ export default class CDocument extends CDOMContainer {
         canvas.height = 600;
         canvas.id = "canvas"
         canvas.addEventListener("mousedown",(e)=>{
+            //简易实现点击效果
             let x = e.clientX
             let y = e.clientY
             let list = this.iterator(this.children,(v)=>{
@@ -25,9 +26,8 @@ export default class CDocument extends CDOMContainer {
                 let res = v.contain(p.x,p.y) 
                 p.release();
                 if(res){
-                    return this;
+                    return v;
                 }
-                // return undefined;
             })
             console.log(list)
             

@@ -35,7 +35,7 @@ export default class CImage extends DOMBase{
     }
     public render(ctx:CanvasRenderingContext2D):void{
         let {width,height,x,y,anchorX,anchorY} = this.style
-        ctx.drawImage(this.treasure,anchorX,anchorY);
+        ctx.drawImage(this.treasure,0,0);
         
     }
 

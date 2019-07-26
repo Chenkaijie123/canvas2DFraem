@@ -30,21 +30,27 @@ class Main {
         // let g = new CDOMContainer();
         // g.style.x = 50
         // g.style.y = 50
+        // g.style.width = g.style.height = 600
         // this.stage.appendChild(g);
 
-        let i1 = new CImage();
-        i1.src = "./test1.jpeg"
-        this.stage.appendChild(i1);
+        // let i1 = new CImage();
+        // i1.src = "./test1.jpeg"
+        // i1.style.x = 300;
+        // i1.style.y = 300;
+        // this.stage.appendChild(i1);
 
         let i = new CImage();
         i.src = "./test1.jpeg"
-        i.style.x = 0;
-        i.style.y = 0;
+        i.style.x = 300;
+        i.style.y = 300;
+        // i.style.scaleX = .5
         i.style.rotate = 45;
         i.style.anchorX = 112;
         i.style.anchorY = 84
         this.stage.appendChild(i);
-
+        // setInterval(()=>{
+        //     i.style.rotate ++
+        // },50)
    
         // let p = new CImage();
         // p.src = "./test.png"
