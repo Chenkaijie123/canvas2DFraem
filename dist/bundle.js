@@ -153,14 +153,15 @@ class CDocument extends CDOMContainer_1.default {
             //简易实现点击效果
             let x = e.clientX;
             let y = e.clientY;
+            let p = Point_1.default.createPiont(x, y);
             let list = this.iterator(this.children, (v) => {
-                let p = v.toGlobal(Point_1.default.createPiont(x, y));
+                v.toGlobal(p.setPoint(x, y));
                 let res = v.contain(p.x, p.y);
-                p.release();
                 if (res) {
                     return v;
                 }
             });
+            p.release();
             console.log(list);
         });
         document.body.appendChild(canvas);
@@ -206,9 +207,6 @@ class CDocument extends CDOMContainer_1.default {
                 e.matrix.setByStyle(style); //转换矩阵
                 e.reRender = false;
             }
-            ///-------test------------
-            // e.matrix.setMatrix(2,0,0,1,112,100)
-            //-----------------------
             if (e.parent instanceof CDocument) {
                 this.context.setTransform(...e.matrix.value());
             }
@@ -398,36 +396,13 @@ class DOMBase {
      */
     toGlobal(point) {
         let matrix = this.getMatrixMul();
-        let { x, y } = point;
-        let { a, b, c, d, e, f } = matrix;
+        matrix.invertMartix();
+        matrix.transFormPoint(point);
         matrix.release();
-        // let tempY = y;
-        // y = ((x - e)/a - (tempY - f)/b)/(c/a - d/b)
-        // x = (tempY - f  - d*y)/b
-        let res = this.calc(a, b, c, d, e, f, x, y);
-        point.x = res[0];
-        point.y = res[1];
         return point;
     }
-    /**计算矩阵方程 */
-    calc(a, b, c, d, e, f, x, y) {
-        let [_x, _y] = [-1, -1];
-        if (a == 0) {
-            if (b == 0 || c == 0) { //一般为不可能事件
-            }
-            else {
-                _y = (x - e) / c;
-                _x = (y - f - c * _y) / b;
-            }
-        }
-        else {
-            _y = (y - a * (b * x - b * e) - f) / (d - b * c / a);
-            _x = (x - e - c * _y) / a;
-        }
-        return [_x, _y];
-    }
     contain(_x, _y) {
-        let { scaleX, scaleY, width, height, anchorX, anchorY } = this.style;
+        let { width, height } = this.style;
         return _x >= 0 && width >= _x && _y >= 0 && height >= _y;
     }
     /**
@@ -556,6 +531,7 @@ class Point extends Matrix_1.default {
     }
     setPoint(x = 0, y = 0) {
         this.setMatrix(x, y);
+        return this;
     }
     /**回收进对象池 */
     release() {
@@ -633,8 +609,8 @@ class TransformMatrix extends Matrix_1.default {
         let { rotate, scaleX, scaleY, anchorX, anchorY, x, y, width, height } = style;
         let rotateC = cos(rotate);
         let rotateS = sin(rotate);
-        let tx = x * scaleX; //(x - anchorX) * scaleX;
-        let ty = y * scaleY; //(y - anchorY) * scaleY;
+        let tx = x * scaleX;
+        let ty = y * scaleY;
         let a = rotateC * scaleX;
         let b = rotateS * scaleX;
         let c = -rotateS * scaleY;
@@ -694,6 +670,48 @@ class TransformMatrix extends Matrix_1.default {
         let matrix = TransformMatrix.createTransFormMatrix(1, 0, 0, 1, dx, dy);
         return matrix;
     }
+    /**矩阵求逆 */
+    invertMartix() {
+        let a = this.a;
+        let b = this.b;
+        let c = this.c;
+        let d = this.d;
+        let tx = this.e;
+        let ty = this.f;
+        if (b == 0 && c == 0) {
+            this.b = this.c = 0;
+            if (a == 0 || d == 0) {
+                this.a = this.d = this.e = this.f = 0;
+            }
+            else {
+                a = this.a = 1 / a;
+                d = this.d = 1 / d;
+                this.e = -a * tx;
+                this.f = -d * ty;
+            }
+            return;
+        }
+        let determinant = a * d - b * c;
+        if (determinant == 0) {
+            this.setMatrix(1, 0, 0, 1, 0, 0);
+            return;
+        }
+        determinant = 1 / determinant;
+        let k = this.a = d * determinant;
+        b = this.b = -b * determinant;
+        c = this.c = -c * determinant;
+        d = this.d = a * determinant;
+        this.e = -(k * tx + c * ty);
+        this.f = -(b * tx + d * ty);
+    }
+    /**把传入的点传化成当前矩阵变化后的点，直接改变目标点 */
+    transFormPoint(p) {
+        let [a, b, c, d, e, f] = this.data;
+        let { x, y } = p;
+        p.x = a * x + c * y + e;
+        p.y = b * x + d * y + f;
+        return p;
+    }
     copy(m) {
         this.setMatrix(...m.value());
         return this;
@@ -728,6 +746,7 @@ exports.default = TransformMatrix;
 Object.defineProperty(exports, "__esModule", { value: true });
 const CImage_1 = __webpack_require__(/*! ./canvasDOM/DOM/CImage */ "./src/canvasDOM/DOM/CImage.ts");
 const CDocument_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDocument */ "./src/canvasDOM/DOM/CDocument.ts");
+const CDOMContainer_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDOMContainer */ "./src/canvasDOM/DOM/CDOMContainer.ts");
 class Main {
     constructor() {
         this.stage = new CDocument_1.default();
@@ -743,11 +762,11 @@ class Main {
         loop();
     }
     test() {
-        // let g = new CDOMContainer();
-        // g.style.x = 50
-        // g.style.y = 50
-        // g.style.width = g.style.height = 600
-        // this.stage.appendChild(g);
+        let g = new CDOMContainer_1.default();
+        g.style.x = 50;
+        g.style.y = 50;
+        g.style.width = g.style.height = 600;
+        this.stage.appendChild(g);
         // let i1 = new CImage();
         // i1.src = "./test1.jpeg"
         // i1.style.x = 300;
@@ -761,10 +780,10 @@ class Main {
         i.style.rotate = 45;
         i.style.anchorX = 112;
         i.style.anchorY = 84;
-        this.stage.appendChild(i);
-        // setInterval(()=>{
-        //     i.style.rotate ++
-        // },50)
+        g.appendChild(i);
+        setInterval(() => {
+            i.style.rotate++;
+        }, 50);
         // let p = new CImage();
         // p.src = "./test.png"
         // p.style.anchorX = 50;

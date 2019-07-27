@@ -41,22 +41,22 @@ export default class TransformMatrix extends Matrix {
     }
 
     public setByStyle(style: DOMStyleBase): void {
-        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y ,width,height} = style;
+        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y, width, height } = style;
         let rotateC = cos(rotate);
         let rotateS = sin(rotate);
-        let tx = x*scaleX;
-        let ty = y*scaleY;
+        let tx = x * scaleX;
+        let ty = y * scaleY;
         let a = rotateC * scaleX;
         let b = rotateS * scaleX;
         let c = -rotateS * scaleY;
         let d = rotateC * scaleY;
         //锚点实现，设置锚点不影响x,y位置，只是固定相对于显示对象（0，0）点，用于旋转
-        if(anchorX != 0 || anchorY != 0){
+        if (anchorX != 0 || anchorY != 0) {
             let ancX = anchorX;
             let ancY = anchorY;
             let sx = ancX * a + c * ancY + tx//不设锚点会移动到的位置
             let sy = ancX * b + d * ancY + ty
-            tx = tx + tx - (sx - ancX * scaleX) 
+            tx = tx + tx - (sx - ancX * scaleX)
             ty = ty + ty - (sy - ancY * scaleY)
         }
         this.setMatrix(a, b, c, d, tx, ty);
@@ -106,16 +106,62 @@ export default class TransformMatrix extends Matrix {
         return matrix;
     }
 
-    public scaleMatrix(sx:number,sy:number):TransformMatrix{
-        let matrix = TransformMatrix.createTransFormMatrix(sx, 0,0, sy, 0, 0);
+    public scaleMatrix(sx: number, sy: number): TransformMatrix {
+        let matrix = TransformMatrix.createTransFormMatrix(sx, 0, 0, sy, 0, 0);
         return matrix;
     }
 
 
 
     public translateMatrix(dx: number, dy: number): TransformMatrix {
-        let matrix = TransformMatrix.createTransFormMatrix(1, 0,0, 1, dx, dy);
+        let matrix = TransformMatrix.createTransFormMatrix(1, 0, 0, 1, dx, dy);
         return matrix;
+    }
+
+
+    /**矩阵求逆 */
+    public invertMartix(): void {
+        let a = this.a;
+        let b = this.b;
+        let c = this.c;
+        let d = this.d;
+        let tx = this.e;
+        let ty = this.f;
+        if (b == 0 && c == 0) {
+            this.b = this.c = 0;
+            if (a == 0 || d == 0) {
+                this.a = this.d = this.e = this.f = 0;
+            }
+            else {
+                a = this.a = 1 / a;
+                d = this.d = 1 / d;
+                this.e = -a * tx;
+                this.f = -d * ty;
+            }
+
+            return;
+        }
+        let determinant = a * d - b * c;
+        if (determinant == 0) {
+            this.setMatrix(1, 0, 0, 1, 0, 0);
+            return;
+        }
+        determinant = 1 / determinant;
+        let k = this.a = d * determinant;
+        b = this.b = -b * determinant;
+        c = this.c = -c * determinant;
+        d = this.d = a * determinant;
+        this.e = -(k * tx + c * ty);
+        this.f = -(b * tx + d * ty);
+    }
+
+    /**把传入的点传化成当前矩阵变化后的点，直接改变目标点 */
+    public transFormPoint(p: Point): Point {
+        let [a, b, c, d, e, f] = this.data;
+        let { x, y } = p;
+        p.x = a * x + c * y + e;
+        p.y = b * x + d * y + f;
+        return p;
     }
 
     public copy(m: TransformMatrix): this {

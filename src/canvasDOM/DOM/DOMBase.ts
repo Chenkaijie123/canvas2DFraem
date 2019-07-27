@@ -5,7 +5,7 @@ import Matrix from "../math/Matrix";
 /**
  * 基础DOM
  */
-let hashCode:number = 0;
+let hashCode: number = 0;
 export abstract class DOMBase {
     public type: string
     public _style: DOMStyleBase
@@ -18,7 +18,7 @@ export abstract class DOMBase {
     protected deep: number
     public matrix: TransformMatrix
     // public position: Point;//全局坐标
-    public hashCode:number
+    public hashCode: number
     public get style() {
         return this.proxy;
     }
@@ -37,7 +37,7 @@ export abstract class DOMBase {
                     target[key] = newData;
                     if (!self.reRender) self.reRender = true;
                     self.proxyHandle(target, key, newData, proxy);
-                   
+
                 }
                 return true
             }
@@ -132,59 +132,38 @@ export abstract class DOMBase {
      * 把处于当前坐标系的point点装换为全局的坐标
      * @param point 
      */
-    public toGlobal(point:Point):Point{
+    public toGlobal(point: Point): Point {
         let matrix = this.getMatrixMul();
-        let {x,y} = point;
-        let {a,b,c,d,e,f} = matrix;
+        matrix.invertMartix();
+        matrix.transFormPoint(point);
         matrix.release();
-        // let tempY = y;
-        // y = ((x - e)/a - (tempY - f)/b)/(c/a - d/b)
-        // x = (tempY - f  - d*y)/b
-        let res = this.calc(a,b,c,d,e,f,x,y)
-        point.x = res[0];
-        point.y = res[1];
         return point;
     }
 
-    /**计算矩阵方程 */
-    public calc(a:number,b:number,c:number,d:number,e:number,f:number,x:number,y:number):[number,number]{
-        let [_x,_y] = [-1,-1];
-        if(a == 0){
-            if(b == 0 || c == 0){//一般为不可能事件
-                
-            }else{
-                _y = (x - e)/c;
-                _x = (y - f - c*_y)/b;
-             }
-        }else{
-            _y = (y - a*(b*x - b*e) - f) / (d - b* c /a)
-            _x = (x - e - c * _y)/a;
-        }
-        return [_x,_y];
-    }
 
-    public contain(_x:number,_y:number):boolean{
-        let {width,height} = this.style
+
+    public contain(_x: number, _y: number): boolean {
+        let { width, height } = this.style
         return _x >= 0 && width >= _x && _y >= 0 && height >= _y
     }
 
     /**
      * 获取该对象当前的转化矩阵
      */
-    public getMatrixMul():TransformMatrix{
-        let temp:TransformMatrix[] = [this.matrix]
-        let t:DOMBase = this;
-        while(t.parent){
+    public getMatrixMul(): TransformMatrix {
+        let temp: TransformMatrix[] = [this.matrix]
+        let t: DOMBase = this;
+        while (t.parent) {
             t = t.parent;
-            if(t.reRender){
+            if (t.reRender) {
                 t.matrix.setByStyle(t.style);//转换矩阵
                 t.reRender = false;
             }
             temp.push(t.matrix)
         }
         let matrix = temp.pop().clone();
-        let m:TransformMatrix;
-        while(m = temp.pop()){
+        let m: TransformMatrix;
+        while (m = temp.pop()) {
             matrix.MatrixMulti(m)
         }
         return matrix;

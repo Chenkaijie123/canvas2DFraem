@@ -27,11 +27,11 @@ class Main {
     }
 
     private test(): void {
-        // let g = new CDOMContainer();
-        // g.style.x = 50
-        // g.style.y = 50
-        // g.style.width = g.style.height = 600
-        // this.stage.appendChild(g);
+        let g = new CDOMContainer();
+        g.style.x = 50
+        g.style.y = 50
+        g.style.width = g.style.height = 600
+        this.stage.appendChild(g);
 
         // let i1 = new CImage();
         // i1.src = "./test1.jpeg"
@@ -47,10 +47,10 @@ class Main {
         i.style.rotate = 45;
         i.style.anchorX = 112;
         i.style.anchorY = 84
-        this.stage.appendChild(i);
-        // setInterval(()=>{
-        //     i.style.rotate ++
-        // },50)
+        g.appendChild(i);
+        setInterval(()=>{
+            i.style.rotate ++
+        },50)
    
         // let p = new CImage();
         // p.src = "./test.png"

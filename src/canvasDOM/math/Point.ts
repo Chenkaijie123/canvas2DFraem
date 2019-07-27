@@ -25,8 +25,9 @@ export default class Point extends Matrix{
         return [this.a,this.b];
     }
 
-    public setPoint(x:number = 0,y :number = 0):void{
+    public setPoint(x:number = 0,y :number = 0):this{
         this.setMatrix(x,y); 
+        return this;
     }
 
     /**回收进对象池 */
