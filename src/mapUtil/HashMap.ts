@@ -39,6 +39,12 @@ export class HashMap<T>{
         return null;
     }
 
+    public removeByKey(key:string|number):void{
+        let index = this.indexMap.indexOf(key);
+        this.indexMap.splice(index,1)
+        delete this.map[key];
+    }
+
     public get lenght(): number {
         return this.source.length;
     }
