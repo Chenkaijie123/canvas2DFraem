@@ -136,7 +136,7 @@ exports.default = CDOMContainer;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const CDOMContainer_1 = __webpack_require__(/*! ./CDOMContainer */ "./src/canvasDOM/DOM/CDOMContainer.ts");
-const Point_1 = __webpack_require__(/*! ../math/Point */ "./src/canvasDOM/math/Point.ts");
+const DOMEvent_1 = __webpack_require__(/*! ../event/DOMEvent */ "./src/canvasDOM/event/DOMEvent.ts");
 /**虚拟文本 */
 class CDocument extends CDOMContainer_1.default {
     constructor() {
@@ -149,21 +149,7 @@ class CDocument extends CDOMContainer_1.default {
         canvas.width = 1000;
         canvas.height = 600;
         canvas.id = "canvas";
-        canvas.addEventListener("mousedown", (e) => {
-            //简易实现点击效果
-            let x = e.clientX;
-            let y = e.clientY;
-            let p = Point_1.default.createPiont(x, y);
-            let list = this.iterator(this.children, (v) => {
-                v.toGlobal(p.setPoint(x, y));
-                let res = v.contain(p.x, p.y);
-                if (res) {
-                    return v;
-                }
-            });
-            p.release();
-            console.log(list);
-        });
+        new DOMEvent_1.default(this);
         document.body.appendChild(canvas);
         this.context = canvas.getContext("2d");
     }
@@ -287,12 +273,14 @@ exports.default = CImage;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const TransformMatrix_1 = __webpack_require__(/*! ../math/TransformMatrix */ "./src/canvasDOM/math/TransformMatrix.ts");
+const EventDispatch_1 = __webpack_require__(/*! ../event/EventDispatch */ "./src/canvasDOM/event/EventDispatch.ts");
 /**
  * 基础DOM
  */
 let hashCode = 0;
-class DOMBase {
+class DOMBase extends EventDispatch_1.default {
     constructor() {
+        super();
         //留下的扩展接口
         this.proxyHandle = (target, key, newData, proxy) => { };
         this.hashCode = hashCode++;
@@ -326,42 +314,6 @@ class DOMBase {
             return this;
         }
     }
-    once(type, listener, caller) {
-        function fn() {
-            listener.call(caller);
-            this.removeEventListener(type, fn, caller);
-        }
-        this.addEventListener(type, fn, caller);
-    }
-    addEventListener(type, listener, caller) {
-        if (!this.hasEvent(type, listener, caller)) {
-            if (!this.listenerMap[type])
-                this.listenerMap[type] = [];
-            this.listenerMap[type].push([listener, caller]);
-        }
-    }
-    removeEventListener(type, listener, caller) {
-        this.hasEvent(type, listener, caller, true);
-    }
-    hasEvent(type, listener, caller, remove = false) {
-        let map = this.listenerMap[type];
-        let idx = 0;
-        for (let i of map) {
-            if (i[0] == listener && i[1] == caller) {
-                if (remove)
-                    map.splice(idx, 1);
-                return true;
-            }
-            idx++;
-        }
-        return false;
-    }
-    emit(type) {
-        let map = this.listenerMap[type];
-        for (let i of map) {
-            i[0].call(i[1]);
-        }
-    }
     //判断是否重绘
     checkReRender() {
         return this.reRender = true;
@@ -383,7 +335,6 @@ class DOMBase {
             skewY: 0,
         };
         this.reRender = true;
-        this.listenerMap = {};
         this.matrix = TransformMatrix_1.default.createTransFormMatrix();
         // this.position = Point.createPiont();
     }
@@ -428,6 +379,290 @@ class DOMBase {
     }
 }
 exports.DOMBase = DOMBase;
+
+
+/***/ }),
+
+/***/ "./src/canvasDOM/event/DOMEvent.ts":
+/*!*****************************************!*\
+  !*** ./src/canvasDOM/event/DOMEvent.ts ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Point_1 = __webpack_require__(/*! ../math/Point */ "./src/canvasDOM/math/Point.ts");
+/**canvas内部元素点击事件的实现 */
+class DOMEvent {
+    constructor(document) {
+        this.onTapBegin = function (e) {
+            let t = this;
+            let canvas = t.document.canvas;
+            canvas.removeEventListener("mousemove", t.onMove);
+            canvas.addEventListener("mousemove", t.onMove);
+            let list = t.getDOM(e);
+            t.beginList = list;
+            let item, evt, index = list.length - 1;
+            //捕获
+            for (; item = list[index]; index--) {
+                evt = item.emit("tapBegin", true, item);
+                if (evt.stopPro) {
+                    evt.release();
+                    return;
+                }
+            }
+            //冒泡
+            for (index = 0; item = list[index]; index++) {
+                evt = item.emit("tapBegin", false, item);
+                if (evt.stopPro) {
+                    evt.release();
+                    return;
+                }
+            }
+        }.bind(this);
+        this.onTapEnd = function (e) {
+            let t = this;
+            let canvas = t.document.canvas;
+            canvas.removeEventListener("mousemove", t.onMove);
+            let list = t.getDOM(e);
+            let beginList = t.beginList;
+            let index = list.length - 1;
+            //抬起事件捕获
+            for (let DOM, evt; DOM = list[index]; index--) {
+                evt = DOM.emit("tapEnd", true, DOM);
+                if (beginList.indexOf(DOM) != -1) {
+                    DOM.emit("tap", true, DOM);
+                }
+                if (evt.stopPro) {
+                    evt.release();
+                    return;
+                }
+            }
+            //抬起事件冒泡
+            for (let DOM, evt, index = 0; DOM = list[index]; index++) {
+                evt = DOM.emit("tapEnd", false, DOM);
+                if (beginList.indexOf(DOM) != -1) {
+                    DOM.emit("tap", false, DOM);
+                }
+                if (evt.stopPro) {
+                    evt.release();
+                    return;
+                }
+            }
+            //取消事件捕获
+            for (let DOM, evt, index = beginList.length - 1; DOM = beginList[index]; index--) {
+                if (list.indexOf(DOM) == -1) {
+                    evt = DOM.emit("tapCancel", true, DOM);
+                    if (evt.stopPro) {
+                        evt.release();
+                        return;
+                    }
+                }
+            }
+            //取消事件冒泡
+            for (let DOM, evt, index = 0; DOM = beginList[index]; index++) {
+                if (list.indexOf(DOM) == -1) {
+                    evt = DOM.emit("tapCancel", false, DOM);
+                    if (evt.stopPro) {
+                        evt.release();
+                        return;
+                    }
+                }
+            }
+        }.bind(this);
+        this.onMove = function (e) {
+            let t = this;
+            let list = t.getDOM(e);
+            let index = list.length - 1;
+            let beginList = t.beginList;
+            //捕获
+            for (let DOM, evt; DOM = list[index]; index--) {
+                if (beginList.indexOf(DOM) == -1)
+                    continue;
+                evt = DOM.emit("tapMove", true, DOM);
+                if (evt.stopPro) {
+                    evt.release();
+                    return;
+                }
+            }
+            //冒泡
+            for (let DOM, evt, index = 0; DOM = list[index]; index++) {
+                if (beginList.indexOf(DOM) == -1)
+                    continue;
+                evt = DOM.emit("tapMove", false, DOM);
+                if (evt.stopPro) {
+                    evt.release();
+                    return;
+                }
+            }
+        }.bind(this);
+        this.document = document;
+        this.init();
+    }
+    init() {
+        let canvas = this.document.canvas;
+        canvas.addEventListener("mousedown", this.onTapBegin);
+        canvas.addEventListener("mouseup", this.onTapEnd);
+    }
+    /**获取点击的节点列表 */
+    getDOM(e) {
+        let x = e.clientX;
+        let y = e.clientY;
+        let p = Point_1.default.createPiont(x, y);
+        let list = [];
+        this.document.iterator(this.document.children, (v) => {
+            if (v.eventCount == 0)
+                return;
+            v.toGlobal(p.setPoint(x, y));
+            let res = v.contain(p.x, p.y);
+            if (res) {
+                list.push(v);
+            }
+        });
+        p.release();
+        return list;
+    }
+}
+exports.default = DOMEvent;
+
+
+/***/ }),
+
+/***/ "./src/canvasDOM/event/Event.ts":
+/*!**************************************!*\
+  !*** ./src/canvasDOM/event/Event.ts ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var PlugC;
+(function (PlugC) {
+    let pool = [];
+    class Event {
+        constructor(type, usecapture = false) {
+            this.type = "";
+            this.stopPro = false;
+            this.type = type;
+            this.usecapture = usecapture;
+            this.bubbles = !usecapture;
+        }
+        stopPropagation() {
+            this.stopPro = true;
+        }
+        release() {
+            pool.push(this);
+        }
+        static create(type, usecapture = false) {
+            let e = pool.pop();
+            if (e) {
+                e.type = type;
+                e.usecapture = usecapture;
+                e.bubbles = !usecapture;
+                e.stopPro = false;
+            }
+            else
+                e = new PlugC.Event(type, usecapture);
+            return e;
+        }
+    }
+    PlugC.Event = Event;
+})(PlugC = exports.PlugC || (exports.PlugC = {}));
+
+
+/***/ }),
+
+/***/ "./src/canvasDOM/event/EventDispatch.ts":
+/*!**********************************************!*\
+  !*** ./src/canvasDOM/event/EventDispatch.ts ***!
+  \**********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Event_1 = __webpack_require__(/*! ./Event */ "./src/canvasDOM/event/Event.ts");
+class EventDispatch {
+    constructor() {
+        this.bubblingMap = {}; //冒泡阶段触发
+        this.captureMap = {}; //捕获阶段触发
+        this.eventCount = 0;
+    }
+    emit(type, useCapture = false, target = undefined) {
+        let map = useCapture ? this.captureMap[type] : this.bubblingMap[type];
+        let e = Event_1.PlugC.Event.create(type, useCapture);
+        e.target = target;
+        if (map) {
+            let index = 0, item;
+            while (item = map[index++]) {
+                e.currentTarget = this;
+                item[0].call(item[1], e);
+                if (e.stopPro)
+                    break;
+            }
+        }
+        return e;
+    }
+    addEventListener(type, fn, caller, useCapture = false) {
+        if (this.hasEvent(type, fn, caller))
+            return;
+        this.eventCount++;
+        let map = this.bubblingMap;
+        if (!map[type])
+            map[type] = [[fn, caller]];
+        else
+            map[type].push([fn, caller]);
+        if (useCapture) {
+            map = this.captureMap;
+            if (!map[type])
+                map[type] = [[fn, caller]];
+            else
+                map[type].push([fn, caller]);
+        }
+    }
+    removeEventListener(type, fn, caller, useCapture = false) {
+        let index = this.indexOfEvent(fn, caller, this.bubblingMap[type]);
+        if (index != -1) {
+            this.bubblingMap[type].splice(index, 1);
+            this.eventCount--;
+        }
+        index = this.indexOfEvent(fn, caller, this.captureMap[type]);
+        if (index != -1) {
+            this.captureMap[type].splice(index, 1);
+        }
+    }
+    on(type, fn, caller, useCapture = false) {
+        this.addEventListener(type, fn, caller, useCapture);
+    }
+    off(type, fn, caller, useCapture = false) {
+        this.removeEventListener(type, fn, caller, useCapture);
+    }
+    /**
+     * 判断是否有监听目标事件
+     * @param type 事件标识符
+     * @param fn 监听函数
+     * @param caller 调用者
+     */
+    hasEvent(type, fn, caller) {
+        let index = this.indexOfEvent(fn, caller, this.bubblingMap[type]);
+        return index != -1;
+    }
+    indexOfEvent(fn, caller, list) {
+        if (!list || !list.length)
+            return -1;
+        for (let item, index = 0; item = list[index]; index++) {
+            if (item[0] == fn && item[1] == caller)
+                return index;
+        }
+        return -1;
+    }
+}
+exports.default = EventDispatch;
 
 
 /***/ }),
@@ -762,10 +997,18 @@ class Main {
         loop();
     }
     test() {
+        for (let i = 0; i < 300; i++) {
+            let k = new CImage_1.default();
+            k.src = "./test1.jpeg";
+            k.style.x = i * 10;
+            k.style.y = i * 10;
+            this.stage.appendChild(k);
+        }
         let g = new CDOMContainer_1.default();
         g.style.x = 50;
         g.style.y = 50;
         g.style.width = g.style.height = 600;
+        // g.addEventListener("click",(e)=>{e.stopPropagation()},this)
         this.stage.appendChild(g);
         // let i1 = new CImage();
         // i1.src = "./test1.jpeg"
@@ -784,6 +1027,9 @@ class Main {
         setInterval(() => {
             i.style.rotate++;
         }, 50);
+        i.addEventListener("tapBegin", (e) => { console.log(e); e.stopPropagation(); }, this, true);
+        i.addEventListener("tap", (e) => { console.log("tap"); }, this);
+        i.addEventListener("tapMove", (e) => { console.log("tapMove"); }, this);
         // let p = new CImage();
         // p.src = "./test.png"
         // p.style.anchorX = 50;

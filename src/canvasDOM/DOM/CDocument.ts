@@ -2,10 +2,12 @@ import CDOMContainer from "./CDOMContainer"
 import { DOMBase } from "./DOMBase"
 import Point from "../math/Point";
 import TransformMatrix from "../math/TransformMatrix";
+import { PlugC } from "../event/Event";
+import DOMEvent from "../event/DOMEvent";
 /**虚拟文本 */
 export default class CDocument extends CDOMContainer {
     private reRenderDeep: number;//需要重新渲染的深度
-    private canvas: HTMLCanvasElement
+    public canvas: HTMLCanvasElement
     private context: CanvasRenderingContext2D;
     constructor() {
         super();
@@ -18,22 +20,7 @@ export default class CDocument extends CDOMContainer {
         canvas.width = 1000;
         canvas.height = 600;
         canvas.id = "canvas"
-        canvas.addEventListener("mousedown", (e) => {
-            //简易实现点击效果
-            let x = e.clientX
-            let y = e.clientY
-            let p = Point.createPiont(x, y);
-            let list = this.iterator(this.children, (v) => {
-                v.toGlobal(p.setPoint(x, y))
-                let res = v.contain(p.x, p.y)
-                if (res) {
-                    return v;
-                }
-            })
-            p.release();
-            console.log(list)
-
-        })
+        new DOMEvent(this);
         document.body.appendChild(canvas);
         this.context = canvas.getContext("2d");
     }
@@ -44,7 +31,7 @@ export default class CDocument extends CDOMContainer {
         this.deep = 1;
     }
 
-    private iterator<T>(loot: Array<DOMBase>, fn: (e: DOMBase) => T): T[] {
+    public iterator<T>(loot: Array<DOMBase>, fn: (e: DOMBase) => T): T[] {
         let res = [];
         for (let i: number = 0, e: any; e = loot[i]; i++) {
             res.push(fn(e))

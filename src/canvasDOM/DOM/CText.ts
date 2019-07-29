@@ -37,7 +37,6 @@ export default class CText extends DOMBase{
             fontStyle:"normal",
         }
         this.reRender = true;
-        this.listenerMap = {};
         this.matrix = TransformMatrix.createTransFormMatrix();
         // this.position = Point.createPiont();
     }

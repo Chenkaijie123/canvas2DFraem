@@ -1,18 +1,19 @@
 import TransformMatrix from "../math/TransformMatrix";
 import Point from "../math/Point";
 import Matrix from "../math/Matrix";
+import EventDispatch from "../event/EventDispatch";
 
 /**
  * 基础DOM
  */
 let hashCode: number = 0;
-export abstract class DOMBase {
+export abstract class DOMBase extends EventDispatch{
     public type: string
     public _style: DOMStyleBase
     public className: string
     public id: string
     public parent: DOMContainer
-    protected listenerMap: { [key: string]: [Function, any][] }
+
     public reRender: boolean;//重绘标志
     protected proxy: DOMStyleBase
     protected deep: number
@@ -28,6 +29,7 @@ export abstract class DOMBase {
     //留下的扩展接口
     protected proxyHandle: Function = <k extends keyof DOMStyleBase>(target: DOMStyleBase, key: k, newData: DOMStyleBase[k], proxy: DOMStyleBase) => { }
     constructor() {
+        super();
         this.hashCode = hashCode++
         this.init();
         let self = this;
@@ -57,43 +59,7 @@ export abstract class DOMBase {
         }
     }
 
-    public once(type: string, listener: Function, caller: any): void {
-        function fn() {
-            listener.call(caller);
-            this.removeEventListener(type, fn, caller);
-        }
-        this.addEventListener(type, fn, caller);
-    }
 
-    public addEventListener(type: string, listener: Function, caller: any): void {
-        if (!this.hasEvent(type, listener, caller)) {
-            if (!this.listenerMap[type]) this.listenerMap[type] = [];
-            this.listenerMap[type].push([listener, caller])
-        }
-    }
-    public removeEventListener(type: string, listener: Function, caller: any): void {
-        this.hasEvent(type, listener, caller, true)
-    }
-
-    private hasEvent(type: string, listener: Function, caller: any, remove: boolean = false): boolean {
-        let map = this.listenerMap[type];
-        let idx: number = 0;
-        for (let i of map) {
-            if (i[0] == listener && i[1] == caller) {
-                if (remove) map.splice(idx, 1)
-                return true
-            }
-            idx++
-        }
-        return false
-    }
-
-    public emit(type: string): void {
-        let map = this.listenerMap[type];
-        for (let i of map) {
-            i[0].call(i[1]);
-        }
-    }
 
     //判断是否重绘
     public checkReRender(): boolean {
@@ -117,7 +83,6 @@ export abstract class DOMBase {
             skewY: 0,
         }
         this.reRender = true;
-        this.listenerMap = {};
         this.matrix = TransformMatrix.createTransFormMatrix();
         // this.position = Point.createPiont();
     }

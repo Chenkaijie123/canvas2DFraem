@@ -8,6 +8,7 @@ import CDocument from "./canvasDOM/DOM/CDocument";
 import CDOMContainer from "./canvasDOM/DOM/CDOMContainer";
 import CText from "./canvasDOM/DOM/CText";
 import { throttle } from "./canvasDOM/global/Global";
+import { PlugC } from "./canvasDOM/event/Event";
 
 class Main {
     private stage: CDocument
@@ -27,10 +28,18 @@ class Main {
     }
 
     private test(): void {
+        for(let i = 0 ;i < 300;i++){
+            let k = new CImage();
+            k.src = "./test1.jpeg"
+            k.style.x = i * 10;
+            k.style.y = i *10;
+            this.stage.appendChild(k)
+        }
         let g = new CDOMContainer();
         g.style.x = 50
         g.style.y = 50
         g.style.width = g.style.height = 600
+        // g.addEventListener("click",(e)=>{e.stopPropagation()},this)
         this.stage.appendChild(g);
 
         // let i1 = new CImage();
@@ -51,7 +60,9 @@ class Main {
         setInterval(()=>{
             i.style.rotate ++
         },50)
-   
+        i.addEventListener("tapBegin",(e)=>{console.log(e);e.stopPropagation()},this,true)
+        i.addEventListener("tap",(e)=>{console.log("tap")},this)
+        i.addEventListener("tapMove",(e)=>{console.log("tapMove")},this)
         // let p = new CImage();
         // p.src = "./test.png"
         // p.style.anchorX = 50;
