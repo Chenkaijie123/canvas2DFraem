@@ -1279,11 +1279,12 @@ class ImgLoader extends EventDispatch_1.default {
         this.loadingElement = null;
         this.loadComplete = function (e) {
             let data = this.data = this.loadingElement;
+            let url = this.loadURL;
             this.loadingElement.removeEventListener("load", this.loadComplete);
             this.loadingElement.removeEventListener("error", this.loadError);
             GlobalMgr_1.resource.add(SourceMgr_1.sourceType.image, this.data, this.loadURL); //资源添加到资源管理器
             this.dispatch(ImgLoader.LOAD_COMPLETE, this.data); //通知外部资源加载完成
-            let loaders = ImgLoader.awaitAndPrevent[this.loadURL];
+            let loaders = ImgLoader.awaitAndPrevent[url];
             if (loaders) {
                 let loader;
                 while (loader = loaders.pop()) {

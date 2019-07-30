@@ -43,11 +43,12 @@ export class ImgLoader extends EventDispatch {
 
     private loadComplete: (e: Event) => void = function (e: Event) {
         let data = this.data = this.loadingElement;
+        let url:string = this.loadURL;
         this.loadingElement.removeEventListener("load", this.loadComplete);
         this.loadingElement.removeEventListener("error", this.loadError);
         resource.add(sourceType.image, this.data, this.loadURL);//资源添加到资源管理器
         this.dispatch(ImgLoader.LOAD_COMPLETE, this.data);//通知外部资源加载完成
-        let loaders = ImgLoader.awaitAndPrevent[this.loadURL];
+        let loaders = ImgLoader.awaitAndPrevent[url];
         if (loaders) {
             let loader;
             while (loader = loaders.pop()) {
