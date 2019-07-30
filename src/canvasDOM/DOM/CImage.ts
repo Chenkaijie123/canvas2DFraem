@@ -1,4 +1,6 @@
-import {DOMBase,DOMStyleBase} from "./DOMBase"
+import {DOMBase} from "./DOMBase"
+import { resource } from "../../mgr/GlobalMgr";
+import { ImgLoader } from "../../sourceModel/loader/ImgLoader";
 export default class CImage extends DOMBase{
     private _src:string
     public treasure:HTMLImageElement;
@@ -8,34 +10,27 @@ export default class CImage extends DOMBase{
 
     public set src(url:string){
         if(this._src != url){
-            this._src = url;
-            this.treasure.src = url;
-            let _t = this;
-            function load(){
-                _t.style.width = this.width;
-                _t.style.height = this.height;
-                _t.treasure.removeEventListener("load",load);
-                _t.treasure.removeEventListener("error",err);
-                !_t.reRender && (_t.reRender = true);
-            }
-            function err(e:Event){
-                console.error(e);
-                _t.treasure.removeEventListener("load",load);
-                _t.treasure.removeEventListener("error",err);
-            }
-            this.treasure.addEventListener("load",load);
-            this.treasure.addEventListener("error",err);
+            this.treasure = null;
+            let loader = ImgLoader.create();
+            loader.once(ImgLoader.LOAD_COMPLETE,(e)=>{
+                this.treasure = e.data;
+                this.style.width = this.treasure.width;
+                this.style.height = this.treasure.height;
+                loader.release();
+            },this)
+            loader.load(url);
         }
     }
 
     constructor(){
         super();
         this.type = "CImage";
-        this.treasure = new Image();
+        // this.treasure = new Image();
     }
     public render(ctx:CanvasRenderingContext2D):void{
-        let {width,height,x,y,anchorX,anchorY} = this.style
-        ctx.drawImage(this.treasure,0,0);
+        let img = this.treasure;
+        if(!img) return;
+        ctx.drawImage(img,0,0);
         
     }
 

@@ -64,7 +64,6 @@ export default class CDocument extends CDOMContainer {
         this.context.setTransform(1, 0, 0, 1, 0, 0)
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height)
         let loot = this.children;
-        let anc = 0
         let fn = (e: DOMBase) => {
             //重新计算需要重绘的数据
             if (e.reRender) {

@@ -185,7 +185,6 @@ class CDocument extends CDOMContainer_1.default {
         this.context.setTransform(1, 0, 0, 1, 0, 0);
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
         let loot = this.children;
-        let anc = 0;
         let fn = (e) => {
             //重新计算需要重绘的数据
             if (e.reRender) {
@@ -222,39 +221,34 @@ exports.default = CDocument;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const DOMBase_1 = __webpack_require__(/*! ./DOMBase */ "./src/canvasDOM/DOM/DOMBase.ts");
+const ImgLoader_1 = __webpack_require__(/*! ../../sourceModel/loader/ImgLoader */ "./src/sourceModel/loader/ImgLoader.ts");
 class CImage extends DOMBase_1.DOMBase {
     get src() {
         return this._src;
     }
     set src(url) {
         if (this._src != url) {
-            this._src = url;
-            this.treasure.src = url;
-            let _t = this;
-            function load() {
-                _t.style.width = this.width;
-                _t.style.height = this.height;
-                _t.treasure.removeEventListener("load", load);
-                _t.treasure.removeEventListener("error", err);
-                !_t.reRender && (_t.reRender = true);
-            }
-            function err(e) {
-                console.error(e);
-                _t.treasure.removeEventListener("load", load);
-                _t.treasure.removeEventListener("error", err);
-            }
-            this.treasure.addEventListener("load", load);
-            this.treasure.addEventListener("error", err);
+            this.treasure = null;
+            let loader = ImgLoader_1.ImgLoader.create();
+            loader.once(ImgLoader_1.ImgLoader.LOAD_COMPLETE, (e) => {
+                this.treasure = e.data;
+                this.style.width = this.treasure.width;
+                this.style.height = this.treasure.height;
+                loader.release();
+            }, this);
+            loader.load(url);
         }
     }
     constructor() {
         super();
         this.type = "CImage";
-        this.treasure = new Image();
+        // this.treasure = new Image();
     }
     render(ctx) {
-        let { width, height, x, y, anchorX, anchorY } = this.style;
-        ctx.drawImage(this.treasure, 0, 0);
+        let img = this.treasure;
+        if (!img)
+            return;
+        ctx.drawImage(img, 0, 0);
     }
 }
 exports.default = CImage;
@@ -403,11 +397,12 @@ class DOMEvent {
             canvas.removeEventListener("mousemove", t.onMove);
             canvas.addEventListener("mousemove", t.onMove);
             let list = t.getDOM(e);
+            let { clientX, clientY } = e;
             t.beginList = list;
             let item, evt, index = list.length - 1;
             //捕获
             for (; item = list[index]; index--) {
-                evt = item.emit("tapBegin", true, item);
+                evt = item.emit("tapBegin", true, item, clientX, clientY);
                 if (evt.stopPro) {
                     evt.release();
                     return;
@@ -415,7 +410,7 @@ class DOMEvent {
             }
             //冒泡
             for (index = 0; item = list[index]; index++) {
-                evt = item.emit("tapBegin", false, item);
+                evt = item.emit("tapBegin", false, item, clientX, clientY);
                 if (evt.stopPro) {
                     evt.release();
                     return;
@@ -427,11 +422,12 @@ class DOMEvent {
             let canvas = t.document.canvas;
             canvas.removeEventListener("mousemove", t.onMove);
             let list = t.getDOM(e);
+            let { clientX, clientY } = e;
             let beginList = t.beginList;
             let index = list.length - 1;
             //抬起事件捕获
             for (let DOM, evt; DOM = list[index]; index--) {
-                evt = DOM.emit("tapEnd", true, DOM);
+                evt = DOM.emit("tapEnd", true, DOM, clientX, clientY);
                 if (beginList.indexOf(DOM) != -1) {
                     DOM.emit("tap", true, DOM);
                 }
@@ -442,7 +438,7 @@ class DOMEvent {
             }
             //抬起事件冒泡
             for (let DOM, evt, index = 0; DOM = list[index]; index++) {
-                evt = DOM.emit("tapEnd", false, DOM);
+                evt = DOM.emit("tapEnd", false, DOM, clientX, clientY);
                 if (beginList.indexOf(DOM) != -1) {
                     DOM.emit("tap", false, DOM);
                 }
@@ -454,7 +450,7 @@ class DOMEvent {
             //取消事件捕获
             for (let DOM, evt, index = beginList.length - 1; DOM = beginList[index]; index--) {
                 if (list.indexOf(DOM) == -1) {
-                    evt = DOM.emit("tapCancel", true, DOM);
+                    evt = DOM.emit("tapCancel", true, DOM, clientX, clientY);
                     if (evt.stopPro) {
                         evt.release();
                         return;
@@ -464,7 +460,7 @@ class DOMEvent {
             //取消事件冒泡
             for (let DOM, evt, index = 0; DOM = beginList[index]; index++) {
                 if (list.indexOf(DOM) == -1) {
-                    evt = DOM.emit("tapCancel", false, DOM);
+                    evt = DOM.emit("tapCancel", false, DOM, clientX, clientY);
                     if (evt.stopPro) {
                         evt.release();
                         return;
@@ -477,11 +473,12 @@ class DOMEvent {
             let list = t.getDOM(e);
             let index = list.length - 1;
             let beginList = t.beginList;
+            let { clientX, clientY } = e;
             //捕获
             for (let DOM, evt; DOM = list[index]; index--) {
                 if (beginList.indexOf(DOM) == -1)
                     continue;
-                evt = DOM.emit("tapMove", true, DOM);
+                evt = DOM.emit("tapMove", true, DOM, clientX, clientY);
                 if (evt.stopPro) {
                     evt.release();
                     return;
@@ -491,7 +488,7 @@ class DOMEvent {
             for (let DOM, evt, index = 0; DOM = list[index]; index++) {
                 if (beginList.indexOf(DOM) == -1)
                     continue;
-                evt = DOM.emit("tapMove", false, DOM);
+                evt = DOM.emit("tapMove", false, DOM, clientX, clientY);
                 if (evt.stopPro) {
                     evt.release();
                     return;
@@ -513,7 +510,7 @@ class DOMEvent {
         let p = Point_1.default.createPiont(x, y);
         let list = [];
         this.document.iterator(this.document.children, (v) => {
-            if (v.eventCount == 0)
+            if (v.tapCount == 0)
                 return;
             v.toGlobal(p.setPoint(x, y));
             let res = v.contain(p.x, p.y);
@@ -549,7 +546,7 @@ var PlugC;
             this.stopPro = false;
             this.type = type;
             this.usecapture = usecapture;
-            this.bubbles = !usecapture;
+            // this.bubbles = !usecapture;
         }
         stopPropagation() {
             this.stopPro = true;
@@ -562,12 +559,16 @@ var PlugC;
             if (e) {
                 e.type = type;
                 e.usecapture = usecapture;
-                e.bubbles = !usecapture;
+                // e.bubbles = !usecapture;
                 e.stopPro = false;
             }
             else
                 e = new PlugC.Event(type, usecapture);
             return e;
+        }
+        static factoty(type, usecapture = false, clientX = 0, clientY = 0, EventClass) {
+            let t = EventClass ? EventClass : this;
+            return t.create(type, usecapture, clientX, clientY);
         }
     }
     PlugC.Event = Event;
@@ -587,26 +588,55 @@ var PlugC;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const Event_1 = __webpack_require__(/*! ./Event */ "./src/canvasDOM/event/Event.ts");
+const TouchEvent_1 = __webpack_require__(/*! ./TouchEvent */ "./src/canvasDOM/event/TouchEvent.ts");
+let id = 0;
 class EventDispatch {
     constructor() {
+        /**只有内置点击事件才有冒泡和捕获 */
         this.bubblingMap = {}; //冒泡阶段触发
         this.captureMap = {}; //捕获阶段触发
         this.eventCount = 0;
+        this.tapCount = 0; //当前对象监听的点击事件个数
+        this.hashCode = id++;
     }
-    emit(type, useCapture = false, target = undefined) {
+    emit(type, useCapture = false, target = undefined, clientX = undefined, clientY = undefined) {
         let map = useCapture ? this.captureMap[type] : this.bubblingMap[type];
-        let e = Event_1.PlugC.Event.create(type, useCapture);
+        let e = this.createEvent(type, useCapture, clientX, clientY);
+        e.currentTarget = this;
         e.target = target;
         if (map) {
             let index = 0, item;
             while (item = map[index++]) {
-                e.currentTarget = this;
                 item[0].call(item[1], e);
                 if (e.stopPro)
                     break;
             }
         }
         return e;
+    }
+    /**触发非内置点击事件的事件 */
+    dispatch(type, data) {
+        let map = this.bubblingMap[type];
+        let e = Event_1.PlugC.Event.create(type);
+        let index = 0, item;
+        e.currentTarget = this;
+        e.data = data;
+        while (item = map[index++]) {
+            item[0].call(item[1], e);
+            if (e.stopPro)
+                break;
+        }
+    }
+    createEvent(type, useCapture = false, clientX = 0, clientY = 0) {
+        let e;
+        if (this.checkIsTapEvt(type))
+            e = TouchEvent_1.TapEvent.create(type, useCapture, clientX, clientY);
+        else
+            e = Event_1.PlugC.Event.create(type, useCapture);
+        return e;
+    }
+    checkIsTapEvt(type) {
+        return type == "tapBegin" || type == "tapEnd" || type == "tapCancel" || type == "tapMove";
     }
     addEventListener(type, fn, caller, useCapture = false) {
         if (this.hasEvent(type, fn, caller))
@@ -617,12 +647,13 @@ class EventDispatch {
             map[type] = [[fn, caller]];
         else
             map[type].push([fn, caller]);
-        if (useCapture) {
+        if (useCapture && this.checkIsTapEvt(type)) {
             map = this.captureMap;
             if (!map[type])
                 map[type] = [[fn, caller]];
             else
                 map[type].push([fn, caller]);
+            this.tapCount++;
         }
     }
     removeEventListener(type, fn, caller, useCapture = false) {
@@ -634,13 +665,32 @@ class EventDispatch {
         index = this.indexOfEvent(fn, caller, this.captureMap[type]);
         if (index != -1) {
             this.captureMap[type].splice(index, 1);
+            if (this.checkIsTapEvt(type))
+                this.tapCount--;
         }
+    }
+    once(type, fn, caller, useCapture = false) {
+        let func = (e) => {
+            fn(e);
+            this.removeEventListener(type, func, caller, useCapture);
+        };
+        this.addEventListener(type, func, caller);
     }
     on(type, fn, caller, useCapture = false) {
         this.addEventListener(type, fn, caller, useCapture);
     }
     off(type, fn, caller, useCapture = false) {
         this.removeEventListener(type, fn, caller, useCapture);
+    }
+    removeAllEvent() {
+        let map = this.bubblingMap;
+        for (let key in map) {
+            delete map[key];
+        }
+        map = this.captureMap;
+        for (let key in map) {
+            delete map[key];
+        }
     }
     /**
      * 判断是否有监听目标事件
@@ -663,6 +713,41 @@ class EventDispatch {
     }
 }
 exports.default = EventDispatch;
+
+
+/***/ }),
+
+/***/ "./src/canvasDOM/event/TouchEvent.ts":
+/*!*******************************************!*\
+  !*** ./src/canvasDOM/event/TouchEvent.ts ***!
+  \*******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Event_1 = __webpack_require__(/*! ./Event */ "./src/canvasDOM/event/Event.ts");
+let pool = [];
+class TapEvent extends Event_1.PlugC.Event {
+    constructor(type, usecapture = false, clientX = 0, clientY = 0) {
+        super(type, usecapture);
+        this.clientX = clientX;
+        this.clientY = clientY;
+    }
+    static create(type, usecapture = false, clientX = 0, clientY = 0) {
+        let e = pool.pop();
+        if (e) {
+            e.type = type;
+            e.usecapture = usecapture;
+            e.stopPro = false;
+        }
+        else
+            e = new TapEvent(type, usecapture, clientX, clientY);
+        return e;
+    }
+}
+exports.TapEvent = TapEvent;
 
 
 /***/ }),
@@ -982,9 +1067,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const CImage_1 = __webpack_require__(/*! ./canvasDOM/DOM/CImage */ "./src/canvasDOM/DOM/CImage.ts");
 const CDocument_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDocument */ "./src/canvasDOM/DOM/CDocument.ts");
 const CDOMContainer_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDOMContainer */ "./src/canvasDOM/DOM/CDOMContainer.ts");
+const Event_1 = __webpack_require__(/*! ./canvasDOM/event/Event */ "./src/canvasDOM/event/Event.ts");
+const TouchEvent_1 = __webpack_require__(/*! ./canvasDOM/event/TouchEvent */ "./src/canvasDOM/event/TouchEvent.ts");
+const GlobalMgr_1 = __webpack_require__(/*! ./mgr/GlobalMgr */ "./src/mgr/GlobalMgr.ts");
 class Main {
     constructor() {
         this.stage = new CDocument_1.default();
+        this.globalMgr = new GlobalMgr_1.GlobalMgr();
         this.start();
         this.test();
     }
@@ -1030,6 +1119,8 @@ class Main {
         i.addEventListener("tapBegin", (e) => { console.log(e); e.stopPropagation(); }, this, true);
         i.addEventListener("tap", (e) => { console.log("tap"); }, this);
         i.addEventListener("tapMove", (e) => { console.log("tapMove"); }, this);
+        let e = Event_1.PlugC.Event.factoty("Tap", false, 0, 0, TouchEvent_1.TapEvent);
+        console.log(e);
         // let p = new CImage();
         // p.src = "./test.png"
         // p.style.anchorX = 50;
@@ -1062,6 +1153,206 @@ class Main {
     }
 }
 new Main();
+
+
+/***/ }),
+
+/***/ "./src/mgr/GlobalMgr.ts":
+/*!******************************!*\
+  !*** ./src/mgr/GlobalMgr.ts ***!
+  \******************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const SourceMgr_1 = __webpack_require__(/*! ../sourceModel/SourceMgr */ "./src/sourceModel/SourceMgr.ts");
+//全局管理器
+class GlobalMgr {
+    constructor() {
+        this.init();
+    }
+    init() {
+        exports.resource = new SourceMgr_1.SourceMgr();
+    }
+}
+exports.GlobalMgr = GlobalMgr;
+
+
+/***/ }),
+
+/***/ "./src/sourceModel/SourceMgr.ts":
+/*!**************************************!*\
+  !*** ./src/sourceModel/SourceMgr.ts ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+/**资源管理 */
+class SourceMgr {
+    constructor() {
+        this.imgMap = {};
+        this.JSONMap = {};
+        this.TEXTMap = {};
+    }
+    getMap(type) {
+        let map = {};
+        switch (type) {
+            case sourceType.image:
+                map = this.imgMap;
+                break;
+            case sourceType.json:
+                map = this.JSONMap;
+                break;
+            case sourceType.text:
+                map = this.TEXTMap;
+                break;
+        }
+        return map;
+    }
+    //判断文件类型
+    checkFileType(url) {
+        let index = url.lastIndexOf(".");
+        if (index == -1)
+            return sourceType.none;
+        let excName = url.substr(url.lastIndexOf(".") + 1);
+        if (excName == "json")
+            return sourceType.json;
+        else if (excName == "txt")
+            return sourceType.text;
+        else if (excName == "png" || excName == "jpg" || excName == "jepg")
+            return sourceType.image;
+        return sourceType.none;
+    }
+    hasRES(url) {
+        return !!this.getRES(url);
+    }
+    getRES(url) {
+        let map = this.getMap(this.checkFileType(url));
+        return map[url];
+    }
+    //添加资源
+    add(type, data, url) {
+        let map = this.getMap(type);
+        map[url] = data;
+    }
+    remove(type, url) {
+        let map = this.getMap(type);
+        delete map[url];
+    }
+}
+exports.SourceMgr = SourceMgr;
+var sourceType;
+(function (sourceType) {
+    sourceType[sourceType["none"] = 0] = "none";
+    sourceType[sourceType["image"] = 1] = "image";
+    sourceType[sourceType["json"] = 2] = "json";
+    sourceType[sourceType["text"] = 3] = "text";
+})(sourceType = exports.sourceType || (exports.sourceType = {}));
+
+
+/***/ }),
+
+/***/ "./src/sourceModel/loader/ImgLoader.ts":
+/*!*********************************************!*\
+  !*** ./src/sourceModel/loader/ImgLoader.ts ***!
+  \*********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const EventDispatch_1 = __webpack_require__(/*! ../../canvasDOM/event/EventDispatch */ "./src/canvasDOM/event/EventDispatch.ts");
+const GlobalMgr_1 = __webpack_require__(/*! ../../mgr/GlobalMgr */ "./src/mgr/GlobalMgr.ts");
+const SourceMgr_1 = __webpack_require__(/*! ../SourceMgr */ "./src/sourceModel/SourceMgr.ts");
+let pool = [];
+class ImgLoader extends EventDispatch_1.default {
+    constructor() {
+        super(...arguments);
+        this.data = null; //加载完成会将结果存放在此
+        this.loadURL = null;
+        this.loadingElement = null;
+        this.loadComplete = function (e) {
+            let data = this.data = this.loadingElement;
+            this.loadingElement.removeEventListener("load", this.loadComplete);
+            this.loadingElement.removeEventListener("error", this.loadError);
+            GlobalMgr_1.resource.add(SourceMgr_1.sourceType.image, this.data, this.loadURL); //资源添加到资源管理器
+            this.dispatch(ImgLoader.LOAD_COMPLETE, this.data); //通知外部资源加载完成
+            let loaders = ImgLoader.awaitAndPrevent[this.loadURL];
+            if (loaders) {
+                let loader;
+                while (loader = loaders.pop()) {
+                    loader.data = data;
+                    loader.dispatch(ImgLoader.LOAD_COMPLETE, data);
+                }
+            }
+            this.loadingElement = null;
+        }.bind(this);
+        this.loadError = function (e) {
+            this.loadingElement.removeEventListener("load", this.loadComplete);
+            this.loadingElement.removeEventListener("error", this.loadError);
+            this.dispatch(ImgLoader.LOAD_ERROR, "fail load img" + this.loadURL);
+            this.loadingElement = null;
+        }.bind(this);
+    }
+    loadAsync(url) {
+        return new Promise((resolve, reject) => {
+            this.once(ImgLoader.LOAD_COMPLETE, (e) => {
+                this.removeAllEvent();
+                resolve(e.data);
+            }, this);
+            this.once(ImgLoader.LOAD_ERROR, (e) => {
+                this.removeAllEvent();
+                reject(e.data);
+            }, this);
+            this.load(url);
+        });
+    }
+    load(url) {
+        let data;
+        if (data = GlobalMgr_1.resource.getRES(url)) { //已经加载
+            this.dispatch(ImgLoader.LOAD_COMPLETE, data);
+            return;
+        }
+        else if (ImgLoader.awaitAndPrevent[url]) { //正在加载
+            ImgLoader.awaitAndPrevent[url].push(this);
+            return;
+        }
+        ImgLoader.awaitAndPrevent[url] = [];
+        let img = this.loadingElement = new Image();
+        this.loadURL = img.src = url;
+        img.addEventListener("load", this.loadComplete);
+        img.addEventListener("error", this.loadError);
+        img = null;
+    }
+    clearLoader() {
+        this.data && (this.data = null);
+        this.loadURL && (this.loadURL = null);
+        if (this.loadingElement) {
+            this.loadingElement.removeEventListener("load", this.loadComplete);
+            this.loadingElement.removeEventListener("error", this.loadError);
+            this.loadingElement = null;
+        }
+    }
+    release() {
+        this.clearLoader();
+        pool.push(this);
+        console.log(pool);
+    }
+    static create() {
+        let loader = pool.pop() || new ImgLoader();
+        return loader;
+    }
+}
+ImgLoader.awaitAndPrevent = {}; //正在加载的资源，避免重复加载
+ImgLoader.LOAD_COMPLETE = "LOAD_COMPLETE";
+ImgLoader.LOAD_ERROR = "LOAD_ERROR";
+exports.ImgLoader = ImgLoader;
 
 
 /***/ })

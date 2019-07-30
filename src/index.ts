@@ -9,11 +9,15 @@ import CDOMContainer from "./canvasDOM/DOM/CDOMContainer";
 import CText from "./canvasDOM/DOM/CText";
 import { throttle } from "./canvasDOM/global/Global";
 import { PlugC } from "./canvasDOM/event/Event";
+import { TapEvent } from "./canvasDOM/event/TouchEvent";
+import { GlobalMgr } from "./mgr/GlobalMgr";
 
 class Main {
     private stage: CDocument
+    public globalMgr:GlobalMgr
     constructor() {
         this.stage = new CDocument();
+        this.globalMgr = new GlobalMgr();
         this.start();
         this.test()
     }
@@ -63,6 +67,8 @@ class Main {
         i.addEventListener("tapBegin",(e)=>{console.log(e);e.stopPropagation()},this,true)
         i.addEventListener("tap",(e)=>{console.log("tap")},this)
         i.addEventListener("tapMove",(e)=>{console.log("tapMove")},this)
+        let e = PlugC.Event.factoty("Tap",false,0,0,TapEvent)
+        console.log(e)
         // let p = new CImage();
         // p.src = "./test.png"
         // p.style.anchorX = 50;
