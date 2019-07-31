@@ -1067,9 +1067,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const CImage_1 = __webpack_require__(/*! ./canvasDOM/DOM/CImage */ "./src/canvasDOM/DOM/CImage.ts");
 const CDocument_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDocument */ "./src/canvasDOM/DOM/CDocument.ts");
 const CDOMContainer_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDOMContainer */ "./src/canvasDOM/DOM/CDOMContainer.ts");
-const Event_1 = __webpack_require__(/*! ./canvasDOM/event/Event */ "./src/canvasDOM/event/Event.ts");
-const TouchEvent_1 = __webpack_require__(/*! ./canvasDOM/event/TouchEvent */ "./src/canvasDOM/event/TouchEvent.ts");
 const GlobalMgr_1 = __webpack_require__(/*! ./mgr/GlobalMgr */ "./src/mgr/GlobalMgr.ts");
+const FileLoader_1 = __webpack_require__(/*! ./sourceModel/loader/FileLoader */ "./src/sourceModel/loader/FileLoader.ts");
 class Main {
     constructor() {
         this.stage = new CDocument_1.default();
@@ -1119,37 +1118,8 @@ class Main {
         i.addEventListener("tapBegin", (e) => { console.log(e); e.stopPropagation(); }, this, true);
         i.addEventListener("tap", (e) => { console.log("tap"); }, this);
         i.addEventListener("tapMove", (e) => { console.log("tapMove"); }, this);
-        let e = Event_1.PlugC.Event.factoty("Tap", false, 0, 0, TouchEvent_1.TapEvent);
-        console.log(e);
-        // let p = new CImage();
-        // p.src = "./test.png"
-        // p.style.anchorX = 50;
-        // p.style.anchorY = 50
-        // g.appendChild(p);
-        // let t = new CText()
-        // t.style.text = "你好"
-        // t.style.fontFamily = "Arial"
-        // t.style.x = 300
-        // t.style.textColor = 0xFFF9E2
-        // t.style.border = 2;
-        // t.style.borderColor = 0x000000
-        // t.style.rotate = 30
-        // t.style.fontSize = 30;
-        // t.style.anchorX = 30
-        // t.style.anchorY = 15
-        // setInterval(()=>{
-        //     g.style.rotate++
-        // },10)
-        // g.appendChild(t)
-        // let g1 = new CDOMContainer();
-        // g.appendChild(g1)
-        // let i2 = new CImage
-        // i2.src = "./test.png"
-        // g1.appendChild(i2)
-        // i2.style.scaleX = .5;
-        // setInterval(()=>{
-        //     i2.style.x++
-        // },10)
+        let loader = new FileLoader_1.FileLoader();
+        loader.load("./package.json");
     }
 }
 new Main();
@@ -1257,6 +1227,36 @@ var sourceType;
 
 /***/ }),
 
+/***/ "./src/sourceModel/loader/FileLoader.ts":
+/*!**********************************************!*\
+  !*** ./src/sourceModel/loader/FileLoader.ts ***!
+  \**********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const EventDispatch_1 = __webpack_require__(/*! ../../canvasDOM/event/EventDispatch */ "./src/canvasDOM/event/EventDispatch.ts");
+class FileLoader extends EventDispatch_1.default {
+    constructor() {
+        super(...arguments);
+        this.onComplete = function (e) {
+            console.log(e.currentTarget.response);
+        }.bind(this);
+    }
+    load(url) {
+        let xhr = new XMLHttpRequest();
+        xhr.addEventListener("load", this.onComplete);
+        xhr.open("get", url);
+        xhr.send();
+    }
+}
+exports.FileLoader = FileLoader;
+
+
+/***/ }),
+
 /***/ "./src/sourceModel/loader/ImgLoader.ts":
 /*!*********************************************!*\
   !*** ./src/sourceModel/loader/ImgLoader.ts ***!
@@ -1297,7 +1297,7 @@ class ImgLoader extends EventDispatch_1.default {
         this.loadError = function (e) {
             this.loadingElement.removeEventListener("load", this.loadComplete);
             this.loadingElement.removeEventListener("error", this.loadError);
-            this.dispatch(ImgLoader.LOAD_ERROR, "fail load img" + this.loadURL);
+            this.dispatch(ImgLoader.LOAD_ERROR, "fail load img " + this.loadURL);
             this.loadingElement = null;
         }.bind(this);
     }
@@ -1341,9 +1341,10 @@ class ImgLoader extends EventDispatch_1.default {
         }
     }
     release() {
+        if (pool.length > 50)
+            return; //最大缓存51个图片加载器
         this.clearLoader();
         pool.push(this);
-        console.log(pool);
     }
     static create() {
         let loader = pool.pop() || new ImgLoader();

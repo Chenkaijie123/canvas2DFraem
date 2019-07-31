@@ -62,7 +62,7 @@ export class ImgLoader extends EventDispatch {
     private loadError: (e: Event) => void = function (e: Event) {
         this.loadingElement.removeEventListener("load", this.loadComplete);
         this.loadingElement.removeEventListener("error", this.loadError);
-        this.dispatch(ImgLoader.LOAD_ERROR, "fail load img" + this.loadURL);
+        this.dispatch(ImgLoader.LOAD_ERROR, "fail load img " + this.loadURL);
         this.loadingElement = null;
     }.bind(this);
 
@@ -77,9 +77,9 @@ export class ImgLoader extends EventDispatch {
     }
 
     public release(): void {
+        if(pool.length > 50) return;//最大缓存51个图片加载器
         this.clearLoader();
         pool.push(this);
-        console.log(pool)
     }
 
     public static create(): ImgLoader {

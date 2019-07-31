@@ -11,6 +11,7 @@ import { throttle } from "./canvasDOM/global/Global";
 import { PlugC } from "./canvasDOM/event/Event";
 import { TapEvent } from "./canvasDOM/event/TouchEvent";
 import { GlobalMgr } from "./mgr/GlobalMgr";
+import { FileLoader } from "./sourceModel/loader/FileLoader";
 
 class Main {
     private stage: CDocument
@@ -67,37 +68,8 @@ class Main {
         i.addEventListener("tapBegin",(e)=>{console.log(e);e.stopPropagation()},this,true)
         i.addEventListener("tap",(e)=>{console.log("tap")},this)
         i.addEventListener("tapMove",(e)=>{console.log("tapMove")},this)
-        let e = PlugC.Event.factoty("Tap",false,0,0,TapEvent)
-        console.log(e)
-        // let p = new CImage();
-        // p.src = "./test.png"
-        // p.style.anchorX = 50;
-        // p.style.anchorY = 50
-        // g.appendChild(p);
-        // let t = new CText()
-        // t.style.text = "你好"
-        // t.style.fontFamily = "Arial"
-        // t.style.x = 300
-        // t.style.textColor = 0xFFF9E2
-        // t.style.border = 2;
-        // t.style.borderColor = 0x000000
-        // t.style.rotate = 30
-        // t.style.fontSize = 30;
-        // t.style.anchorX = 30
-        // t.style.anchorY = 15
-        // setInterval(()=>{
-        //     g.style.rotate++
-        // },10)
-        // g.appendChild(t)
-        // let g1 = new CDOMContainer();
-        // g.appendChild(g1)
-        // let i2 = new CImage
-        // i2.src = "./test.png"
-        // g1.appendChild(i2)
-        // i2.style.scaleX = .5;
-        // setInterval(()=>{
-        //     i2.style.x++
-        // },10)
+        let loader = new FileLoader();
+        loader.load("./package.json")
   
 
     }
