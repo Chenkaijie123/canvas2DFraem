@@ -68,10 +68,15 @@ class Main {
         i.addEventListener("tapBegin",(e)=>{console.log(e);e.stopPropagation()},this,true)
         i.addEventListener("tap",(e)=>{console.log("tap")},this)
         i.addEventListener("tapMove",(e)=>{console.log("tapMove")},this)
-        let loader = new FileLoader();
-        loader.load("./package.json")
+        this.loadTest()
   
 
+    }
+
+    private async loadTest():Promise<any>{
+        let loader = new FileLoader();
+        let data = await loader.loadAsync("./package.json");
+        console.log(data)
     }
 }
 

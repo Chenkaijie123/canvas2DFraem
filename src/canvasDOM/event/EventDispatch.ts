@@ -28,7 +28,8 @@ export default class EventDispatch {
 
     /**触发非内置点击事件的事件 */
     public dispatch(type:string,data?:any):void{
-        let map = this.bubblingMap[type]
+        let map = this.bubblingMap[type];
+        if(!map) return;
         let e = PlugC.Event.create(type);
         let index = 0,item:[(e?: PlugC.Event) => any, any];
         e.currentTarget = this;

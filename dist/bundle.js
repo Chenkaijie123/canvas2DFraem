@@ -617,6 +617,8 @@ class EventDispatch {
     /**触发非内置点击事件的事件 */
     dispatch(type, data) {
         let map = this.bubblingMap[type];
+        if (!map)
+            return;
         let e = Event_1.PlugC.Event.create(type);
         let index = 0, item;
         e.currentTarget = this;
@@ -748,6 +750,29 @@ class TapEvent extends Event_1.PlugC.Event {
     }
 }
 exports.TapEvent = TapEvent;
+
+
+/***/ }),
+
+/***/ "./src/canvasDOM/global/PlugC.ts":
+/*!***************************************!*\
+  !*** ./src/canvasDOM/global/PlugC.ts ***!
+  \***************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var SysTem;
+(function (SysTem) {
+    /**文件加载成功 */
+    SysTem["LOAD_COMPLETE"] = "LOAD_COMPLETE";
+    /**文件加载失败 */
+    SysTem["LOAD_ERROR"] = "LOAD_ERROR";
+    /**文件下载状态改变 */
+    SysTem["READY_STATE_CHANGE"] = "READY_STATE_CHANGE";
+})(SysTem = exports.SysTem || (exports.SysTem = {}));
 
 
 /***/ }),
@@ -1063,6 +1088,14 @@ exports.default = TransformMatrix;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const CImage_1 = __webpack_require__(/*! ./canvasDOM/DOM/CImage */ "./src/canvasDOM/DOM/CImage.ts");
 const CDocument_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDocument */ "./src/canvasDOM/DOM/CDocument.ts");
@@ -1118,8 +1151,14 @@ class Main {
         i.addEventListener("tapBegin", (e) => { console.log(e); e.stopPropagation(); }, this, true);
         i.addEventListener("tap", (e) => { console.log("tap"); }, this);
         i.addEventListener("tapMove", (e) => { console.log("tapMove"); }, this);
-        let loader = new FileLoader_1.FileLoader();
-        loader.load("./package.json");
+        this.loadTest();
+    }
+    loadTest() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let loader = new FileLoader_1.FileLoader();
+            let data = yield loader.loadAsync("./package.json");
+            console.log(data);
+        });
     }
 }
 new Main();
@@ -1238,21 +1277,62 @@ var sourceType;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const EventDispatch_1 = __webpack_require__(/*! ../../canvasDOM/event/EventDispatch */ "./src/canvasDOM/event/EventDispatch.ts");
+const PlugC_1 = __webpack_require__(/*! ../../canvasDOM/global/PlugC */ "./src/canvasDOM/global/PlugC.ts");
 class FileLoader extends EventDispatch_1.default {
     constructor() {
         super(...arguments);
-        this.onComplete = function (e) {
-            console.log(e.currentTarget.response);
+        this.onReadystatechange = function (e) {
+            let xhr = e.currentTarget;
+            let loader = this;
+            let status = loader.status = xhr.status;
+            let readyState = loader.readyState = xhr.readyState;
+            if (status == 200 && readyState == 4) {
+                loader.dispatch(PlugC_1.SysTem.LOAD_COMPLETE, this.response = xhr.response);
+                xhr.removeEventListener("readystatechange", this.onReadystatechange);
+                xhr.removeEventListener("error", this.onError);
+            }
+            loader.dispatch(PlugC_1.SysTem.READY_STATE_CHANGE, readyState);
+        }.bind(this);
+        this.onError = function (e) {
+            let xhr = e.currentTarget;
+            let loader = this;
+            xhr.removeEventListener("readystatechange", this.onReadystatechange);
+            xhr.removeEventListener("error", this.onError);
+            loader.dispatch(PlugC_1.SysTem.LOAD_ERROR, xhr.responseURL);
         }.bind(this);
     }
     load(url) {
         let xhr = new XMLHttpRequest();
-        xhr.addEventListener("load", this.onComplete);
+        xhr.addEventListener("readystatechange", this.onReadystatechange);
+        xhr.addEventListener("error", this.onError);
         xhr.open("get", url);
         xhr.send();
     }
+    loadAsync(url) {
+        return new Promise((resolve, reject) => {
+            this.load(url);
+            this.once(PlugC_1.SysTem.LOAD_COMPLETE, (e) => {
+                this.removeAllEvent();
+                resolve(this.response);
+            }, this);
+            this.once(PlugC_1.SysTem.LOAD_ERROR, (e) => {
+                this.removeAllEvent();
+                reject(e.data);
+            }, this);
+        });
+    }
 }
+FileLoader.LOAD_COMPLETE = "LOAD_COMPLETE";
 exports.FileLoader = FileLoader;
+/**加载文件类型 */
+var FileLoaderType;
+(function (FileLoaderType) {
+    FileLoaderType["ARRAYBUFFER"] = "arraybuffer";
+    FileLoaderType["TEXT"] = "text";
+    FileLoaderType["BLOB"] = "blob";
+    FileLoaderType["DOCUMENT"] = "document";
+    FileLoaderType["JSON"] = "json";
+})(FileLoaderType = exports.FileLoaderType || (exports.FileLoaderType = {}));
 
 
 /***/ }),
