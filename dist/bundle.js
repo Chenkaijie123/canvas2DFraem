@@ -86,6 +86,42 @@
 /************************************************************************/
 /******/ ({
 
+/***/ "./src/DataStruct/CArray.ts":
+/*!**********************************!*\
+  !*** ./src/DataStruct/CArray.ts ***!
+  \**********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * 数组
+ */
+class CArray extends Array {
+    constructor(args) {
+        super(args);
+        let p = new Proxy(this, {
+            get(target, key) {
+                console.log(target, key);
+                new Array()[1];
+                return target[key];
+            },
+            set(target, key, value) {
+                target[key] = value;
+                console.log(target);
+                return true;
+            }
+        });
+        p[1] = 10;
+    }
+}
+exports.default = CArray;
+
+
+/***/ }),
+
 /***/ "./src/canvasDOM/DOM/CDOMContainer.ts":
 /*!********************************************!*\
   !*** ./src/canvasDOM/DOM/CDOMContainer.ts ***!
@@ -1102,6 +1138,7 @@ const CDocument_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDocument */ "./src/
 const CDOMContainer_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDOMContainer */ "./src/canvasDOM/DOM/CDOMContainer.ts");
 const GlobalMgr_1 = __webpack_require__(/*! ./mgr/GlobalMgr */ "./src/mgr/GlobalMgr.ts");
 const FileLoader_1 = __webpack_require__(/*! ./sourceModel/loader/FileLoader */ "./src/sourceModel/loader/FileLoader.ts");
+const CArray_1 = __webpack_require__(/*! ./DataStruct/CArray */ "./src/DataStruct/CArray.ts");
 class Main {
     constructor() {
         this.stage = new CDocument_1.default();
@@ -1152,6 +1189,9 @@ class Main {
         i.addEventListener("tap", (e) => { console.log("tap"); }, this);
         i.addEventListener("tapMove", (e) => { console.log("tapMove"); }, this);
         this.loadTest();
+        let ca = new CArray_1.default([1, 2, 3, 4, 5]);
+        console.log(ca[0] = 12);
+        console.log(ca[-1]);
     }
     loadTest() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -1278,6 +1318,7 @@ var sourceType;
 Object.defineProperty(exports, "__esModule", { value: true });
 const EventDispatch_1 = __webpack_require__(/*! ../../canvasDOM/event/EventDispatch */ "./src/canvasDOM/event/EventDispatch.ts");
 const PlugC_1 = __webpack_require__(/*! ../../canvasDOM/global/PlugC */ "./src/canvasDOM/global/PlugC.ts");
+/**文件加载 */
 class FileLoader extends EventDispatch_1.default {
     constructor() {
         super(...arguments);
@@ -1301,6 +1342,10 @@ class FileLoader extends EventDispatch_1.default {
             loader.dispatch(PlugC_1.SysTem.LOAD_ERROR, xhr.responseURL);
         }.bind(this);
     }
+    /**
+     * 同步加载方法
+     * @param url 加载地址
+     */
     load(url) {
         let xhr = new XMLHttpRequest();
         xhr.addEventListener("readystatechange", this.onReadystatechange);
@@ -1308,10 +1353,14 @@ class FileLoader extends EventDispatch_1.default {
         xhr.open("get", url);
         xhr.send();
     }
+    /**
+     * 异步加载方法
+     * @param url 加载地址
+     */
     loadAsync(url) {
         return new Promise((resolve, reject) => {
             this.load(url);
-            this.once(PlugC_1.SysTem.LOAD_COMPLETE, (e) => {
+            this.once(PlugC_1.SysTem.LOAD_COMPLETE, () => {
                 this.removeAllEvent();
                 resolve(this.response);
             }, this);
@@ -1322,7 +1371,6 @@ class FileLoader extends EventDispatch_1.default {
         });
     }
 }
-FileLoader.LOAD_COMPLETE = "LOAD_COMPLETE";
 exports.FileLoader = FileLoader;
 /**加载文件类型 */
 var FileLoaderType;

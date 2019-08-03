@@ -1,13 +1,18 @@
 import EventDispatch from "../../canvasDOM/event/EventDispatch";
 import { SysTem } from "../../canvasDOM/global/PlugC";
 
+/**文件加载 */
 export class FileLoader extends EventDispatch {
-    static LOAD_COMPLETE: string = "LOAD_COMPLETE";
+    /**设置该属性可以获取不同的文件格式 */
     public responseType: FileLoaderType;
     public response: ArrayBuffer | Blob | Document | string;//数据
     public status: number;
     public readyState: number;
 
+    /**
+     * 同步加载方法
+     * @param url 加载地址
+     */
     public load(url: string): void {
         let xhr = new XMLHttpRequest();
         xhr.addEventListener("readystatechange", this.onReadystatechange);
@@ -16,6 +21,10 @@ export class FileLoader extends EventDispatch {
         xhr.send();
     }
 
+    /**
+     * 异步加载方法
+     * @param url 加载地址
+     */
     public loadAsync(url: string): Promise<any> {
         return new Promise((resolve, reject) => {
             this.load(url);

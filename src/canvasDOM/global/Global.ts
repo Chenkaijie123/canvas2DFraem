@@ -1,3 +1,10 @@
+// import CDocument from "../DOM/CDocument";
+
+/**const */
+// export const Document = new CDocument()
+
+
+
 /**
  * 防抖，延迟一段时间后调用一次
  * @param fn 执行函数

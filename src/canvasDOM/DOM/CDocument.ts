@@ -1,8 +1,5 @@
 import CDOMContainer from "./CDOMContainer"
 import { DOMBase } from "./DOMBase"
-import Point from "../math/Point";
-import TransformMatrix from "../math/TransformMatrix";
-import { PlugC } from "../event/Event";
 import DOMEvent from "../event/DOMEvent";
 /**虚拟文本 */
 export default class CDocument extends CDOMContainer {

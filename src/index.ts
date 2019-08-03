@@ -12,6 +12,7 @@ import { PlugC } from "./canvasDOM/event/Event";
 import { TapEvent } from "./canvasDOM/event/TouchEvent";
 import { GlobalMgr } from "./mgr/GlobalMgr";
 import { FileLoader } from "./sourceModel/loader/FileLoader";
+import CArray from "./DataStruct/CArray";
 
 class Main {
     private stage: CDocument
@@ -69,6 +70,9 @@ class Main {
         i.addEventListener("tap",(e)=>{console.log("tap")},this)
         i.addEventListener("tapMove",(e)=>{console.log("tapMove")},this)
         this.loadTest()
+        let ca = new CArray([1,2,3,4,5])
+        console.log(ca[0] = 12)
+        console.log(ca[-1])
   
 
     }
