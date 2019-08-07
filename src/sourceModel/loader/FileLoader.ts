@@ -15,6 +15,8 @@ export class FileLoader extends EventDispatch {
      */
     public load(url: string): void {
         let xhr = new XMLHttpRequest();
+        //不设置文件样式默认以二进制加载文件
+        xhr.responseType = this.responseType || FileLoaderType.ARRAYBUFFER;
         xhr.addEventListener("readystatechange", this.onReadystatechange);
         xhr.addEventListener("error", this.onError);
         xhr.open("get", url);

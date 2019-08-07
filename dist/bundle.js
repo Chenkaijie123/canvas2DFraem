@@ -100,24 +100,85 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * 数组
  */
 class CArray extends Array {
-    constructor(args) {
-        super(args);
-        let p = new Proxy(this, {
+    constructor(...element) {
+        super(...element);
+        let t = this;
+        return new Proxy(t, {
             get(target, key) {
-                console.log(target, key);
-                new Array()[1];
-                return target[key];
+                let hash = t.parseKey(key);
+                return target[hash];
             },
             set(target, key, value) {
-                target[key] = value;
-                console.log(target);
+                let hash = t.parseKey(key);
+                target[hash] = value;
                 return true;
-            }
+            },
         });
-        p[1] = 10;
+    }
+    slice(start, end) {
+        return this.toCArray.call(super.slice(start, end));
+    }
+    shift() {
+        return super.shift();
+    }
+    pop() {
+        return super.pop();
+    }
+    push(...item) {
+        return super.push(...item);
+    }
+    unshift(...item) {
+        return super.unshift(...item);
+    }
+    concat(...items) {
+        let res = super.concat(...items);
+        return this.toCArray.call(res);
+    }
+    reverse() {
+        return this.toCArray.call(super.reverse());
+    }
+    splice(start, deleteCount, ...items) {
+        return this.toCArray.call(super.splice(start, deleteCount, ...items));
+    }
+    map(fn, ...args) {
+        let res = [];
+        for (let i = 0, len = this.length; i < len; i++) {
+            res.push(fn.call(this, this[i], i, this, ...args));
+        }
+        return this.toCArray.call(res);
+    }
+    parseKey(key) {
+        if (typeof key == "symbol")
+            return key;
+        let _key = Number(key);
+        if (_key != _key) {
+            _key = key;
+        }
+        else {
+            if (_key < 0) {
+                _key = this.length + _key > 0 ? this.length + _key : 0;
+            }
+        }
+        return _key;
+    }
+    toCArray() {
+        let t = this;
+        this["__proto__"] = proto;
+        return new Proxy(t, {
+            get(target, key) {
+                let hash = t.parseKey(key);
+                return target[hash];
+            },
+            set(target, key, value) {
+                let hash = t.parseKey(key);
+                target[hash] = value;
+                return true;
+            },
+        });
     }
 }
 exports.default = CArray;
+let proto = new CArray();
 
 
 /***/ }),
@@ -1189,9 +1250,11 @@ class Main {
         i.addEventListener("tap", (e) => { console.log("tap"); }, this);
         i.addEventListener("tapMove", (e) => { console.log("tapMove"); }, this);
         this.loadTest();
-        let ca = new CArray_1.default([1, 2, 3, 4, 5]);
-        console.log(ca[0] = 12);
-        console.log(ca[-1]);
+        let ca = new CArray_1.default(1, 2, 3, 4, 5);
+        let cb = new CArray_1.default(6, 7, 8);
+        // console.log(ca[0] = 12)
+        let arr = ca.concat(cb);
+        console.log(arr instanceof CArray_1.default);
     }
     loadTest() {
         return __awaiter(this, void 0, void 0, function* () {

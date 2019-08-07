@@ -70,9 +70,11 @@ class Main {
         i.addEventListener("tap",(e)=>{console.log("tap")},this)
         i.addEventListener("tapMove",(e)=>{console.log("tapMove")},this)
         this.loadTest()
-        let ca = new CArray([1,2,3,4,5])
-        console.log(ca[0] = 12)
-        console.log(ca[-1])
+        let ca = new CArray(1,2,3,4,5)
+        let cb = new CArray(6,7,8)
+        // console.log(ca[0] = 12)
+        let arr = ca.concat(cb)
+        console.log(arr instanceof CArray)
   
 
     }
