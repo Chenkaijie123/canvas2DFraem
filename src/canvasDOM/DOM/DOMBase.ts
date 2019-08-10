@@ -2,6 +2,7 @@ import TransformMatrix from "../math/TransformMatrix";
 import Point from "../math/Point";
 import Matrix from "../math/Matrix";
 import EventDispatch from "../event/EventDispatch";
+import Box from "../math/Box";
 
 /**
  * 基础DOM
@@ -81,6 +82,7 @@ export abstract class DOMBase extends EventDispatch{
             rotate: 0,
             skewX: 0,
             skewY: 0,
+            clip:null
         }
         this.reRender = true;
         this.matrix = TransformMatrix.createTransFormMatrix();
@@ -156,6 +158,7 @@ export interface DOMStyleBase {
     rotate: number
     skewX: number
     skewY: number
+    clip:Box
 }
 
 // interface DOMStyleBaseKeyOf{

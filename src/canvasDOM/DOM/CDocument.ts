@@ -79,4 +79,45 @@ export default class CDocument extends CDOMContainer {
         this.iterator(loot, fn);
         // console.log(Date.now() - t)
     }
+
+    public renderElement():void{
+        let ctx = this.context;
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+        this.renderList( this.children)
+    }
+
+    public renderList(nodes: DOMBase[]): void {
+        let ctx = this.context;
+        for (let i of nodes) {
+            if (i.reRender) {
+                let style = i.style
+                i.matrix.setByStyle(style);//转换矩阵
+                i.reRender = false;
+            }
+            if (!i.style.visible || !i.style.alpha || i.matrix.a == 0 && i.matrix.b == 0 || i.matrix.c == 0 && i.matrix.d == 0) continue;
+            if (i.parent instanceof CDocument) {
+                ctx.setTransform(...i.matrix.value());
+            } else {
+                ctx.transform(...i.matrix.value());
+            }
+            if (i.style.clip) {
+                let clip = i.style.clip
+                if (clip.width <= 0 || clip.height <= 0) continue;
+                ctx.save();
+                ctx.rect(clip.x,clip.y,clip.width,clip.height);
+                ctx.clip();
+                i.render(ctx);
+                if(i["children"]){
+                    this.renderList(i["children"])
+                }
+                ctx.restore();
+            }else{
+                i.render(ctx);
+                if(i["children"]){
+                    this.renderList(i["children"])
+                }
+            }
+        }
+    }
 }

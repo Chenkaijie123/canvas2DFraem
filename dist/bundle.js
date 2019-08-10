@@ -86,103 +86,6 @@
 /************************************************************************/
 /******/ ({
 
-/***/ "./src/DataStruct/CArray.ts":
-/*!**********************************!*\
-  !*** ./src/DataStruct/CArray.ts ***!
-  \**********************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-/**
- * 数组
- */
-class CArray extends Array {
-    constructor(...element) {
-        super(...element);
-        let t = this;
-        return new Proxy(t, {
-            get(target, key) {
-                let hash = t.parseKey(key);
-                return target[hash];
-            },
-            set(target, key, value) {
-                let hash = t.parseKey(key);
-                target[hash] = value;
-                return true;
-            },
-        });
-    }
-    slice(start, end) {
-        return this.toCArray.call(super.slice(start, end));
-    }
-    shift() {
-        return super.shift();
-    }
-    pop() {
-        return super.pop();
-    }
-    push(...item) {
-        return super.push(...item);
-    }
-    unshift(...item) {
-        return super.unshift(...item);
-    }
-    concat(...items) {
-        let res = super.concat(...items);
-        return this.toCArray.call(res);
-    }
-    reverse() {
-        return this.toCArray.call(super.reverse());
-    }
-    splice(start, deleteCount, ...items) {
-        return this.toCArray.call(super.splice(start, deleteCount, ...items));
-    }
-    map(fn, ...args) {
-        let res = [];
-        for (let i = 0, len = this.length; i < len; i++) {
-            res.push(fn.call(this, this[i], i, this, ...args));
-        }
-        return this.toCArray.call(res);
-    }
-    parseKey(key) {
-        if (typeof key == "symbol")
-            return key;
-        let _key = Number(key);
-        if (_key != _key) {
-            _key = key;
-        }
-        else {
-            if (_key < 0) {
-                _key = this.length + _key > 0 ? this.length + _key : 0;
-            }
-        }
-        return _key;
-    }
-    toCArray() {
-        let t = this;
-        this["__proto__"] = proto;
-        return new Proxy(t, {
-            get(target, key) {
-                let hash = t.parseKey(key);
-                return target[hash];
-            },
-            set(target, key, value) {
-                let hash = t.parseKey(key);
-                target[hash] = value;
-                return true;
-            },
-        });
-    }
-}
-exports.default = CArray;
-let proto = new CArray();
-
-
-/***/ }),
-
 /***/ "./src/canvasDOM/DOM/CDOMContainer.ts":
 /*!********************************************!*\
   !*** ./src/canvasDOM/DOM/CDOMContainer.ts ***!
@@ -300,6 +203,49 @@ class CDocument extends CDOMContainer_1.default {
         // let t = Date.now()
         this.iterator(loot, fn);
         // console.log(Date.now() - t)
+    }
+    renderElement() {
+        let ctx = this.context;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.renderList(this.children);
+    }
+    renderList(nodes) {
+        let ctx = this.context;
+        for (let i of nodes) {
+            if (i.reRender) {
+                let style = i.style;
+                i.matrix.setByStyle(style); //转换矩阵
+                i.reRender = false;
+            }
+            if (!i.style.visible || !i.style.alpha || i.matrix.a == 0 && i.matrix.b == 0 || i.matrix.c == 0 && i.matrix.d == 0)
+                continue;
+            if (i.parent instanceof CDocument) {
+                ctx.setTransform(...i.matrix.value());
+            }
+            else {
+                ctx.transform(...i.matrix.value());
+            }
+            if (i.style.clip) {
+                let clip = i.style.clip;
+                if (clip.width <= 0 || clip.height <= 0)
+                    continue;
+                ctx.save();
+                ctx.rect(clip.x, clip.y, clip.width, clip.height);
+                ctx.clip();
+                i.render(ctx);
+                if (i["children"]) {
+                    this.renderList(i["children"]);
+                }
+                ctx.restore();
+            }
+            else {
+                i.render(ctx);
+                if (i["children"]) {
+                    this.renderList(i["children"]);
+                }
+            }
+        }
     }
 }
 exports.default = CDocument;
@@ -424,6 +370,7 @@ class DOMBase extends EventDispatch_1.default {
             rotate: 0,
             skewX: 0,
             skewY: 0,
+            clip: null
         };
         this.reRender = true;
         this.matrix = TransformMatrix_1.default.createTransFormMatrix();
@@ -874,6 +821,120 @@ var SysTem;
 
 /***/ }),
 
+/***/ "./src/canvasDOM/math/Box.ts":
+/*!***********************************!*\
+  !*** ./src/canvasDOM/math/Box.ts ***!
+  \***********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const Matrix_1 = __webpack_require__(/*! ./Matrix */ "./src/canvasDOM/math/Matrix.ts");
+/**
+ * 矩形盒子模型
+ * [x,y,width,height]
+ */
+let pool = [];
+class Box extends Matrix_1.default {
+    get width() {
+        return this.c;
+    }
+    set width(v) {
+        this.c = v;
+    }
+    get height() {
+        return this.d;
+    }
+    set height(v) {
+        this.d = v;
+    }
+    get x() {
+        return this.a;
+    }
+    set x(v) {
+        this.a = v;
+    }
+    get y() {
+        return this.b;
+    }
+    set y(v) {
+        this.b = v;
+    }
+    get value() {
+        return [this.a, this.b, this.c, this.d];
+    }
+    constructor(x = 0, y = 0, width = 0, height = 0) {
+        super(x, y, width, height);
+    }
+    setBox(x = 0, y = 0, width = 0, height = 0) {
+        this.setMatrix(x, y, width, height);
+    }
+    /**回收 */
+    release() {
+        this.setMatrix();
+        pool.push(this);
+    }
+    /**
+     * 获取两个盒子相交的部分
+     * @returns [x,y,width,height]
+     */
+    intersect(box) {
+        if (!Box.isCover(this, box))
+            return null;
+        //取靠右的为基准
+        let referenceIdx = this.x >= box.x ? 0 : 1;
+        let boxArr = [this, box];
+        let [right, left] = [boxArr[referenceIdx], boxArr[1 - referenceIdx]];
+        let [x0, y0, x1, y1] = [0, 0, 0, 0];
+        x0 = right.x;
+        y0 = Math.max(right.y, left.y);
+        x1 = Math.min(right.x + right.width, left.x + left.width);
+        y1 = Math.min(right.y + right.height, left.y + left.height);
+        return Box.createBox(x0, y0, x1 - x0, y1 - y0);
+    }
+    /**
+     * 获取刚好包围两个盒子的盒子
+     * @param box
+     */
+    dirtyRect(box) {
+        return Box.dirtyRect(this, box);
+    }
+    /**判断两个矩形是否有相交(碰撞) */
+    static isCover(Box1, Box2) {
+        return Box1.x + Box1.width > Box2.x &&
+            Box2.x + Box2.width > Box1.x &&
+            Box1.y + Box1.height > Box2.y &&
+            Box2.y + Box2.height > Box1.y;
+    }
+    /**判断点是否在改矩形中 */
+    static pointInside(box, point) {
+        return box.x <= point.x &&
+            box.y <= point.y &&
+            box.x + box.width >= point.x &&
+            box.y + box.height >= point.y;
+    }
+    /**工厂函数 */
+    static createBox(x = 0, y = 0, width = 0, height = 0) {
+        let box = pool.pop() || new Box();
+        box.setBox(x, y, width, height);
+        return box;
+    }
+    /**获取刚好包围多个盒子的大盒子 */
+    static dirtyRect(...box) {
+        let x0 = Math.min(...box.map((v) => v.x));
+        let y0 = Math.min(...box.map((v) => v.y));
+        let x1 = Math.max(...box.map((v) => v.x + v.width));
+        let y1 = Math.max(...box.map((v) => v.y + v.height));
+        return Box.createBox(x0, y0, x1 - x0, y1 - y0);
+    }
+}
+exports.default = Box;
+
+
+/***/ }),
+
 /***/ "./src/canvasDOM/math/Matrix.ts":
 /*!**************************************!*\
   !*** ./src/canvasDOM/math/Matrix.ts ***!
@@ -1195,11 +1256,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const CImage_1 = __webpack_require__(/*! ./canvasDOM/DOM/CImage */ "./src/canvasDOM/DOM/CImage.ts");
+const Box_1 = __webpack_require__(/*! ./canvasDOM/math/Box */ "./src/canvasDOM/math/Box.ts");
 const CDocument_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDocument */ "./src/canvasDOM/DOM/CDocument.ts");
 const CDOMContainer_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDOMContainer */ "./src/canvasDOM/DOM/CDOMContainer.ts");
 const GlobalMgr_1 = __webpack_require__(/*! ./mgr/GlobalMgr */ "./src/mgr/GlobalMgr.ts");
 const FileLoader_1 = __webpack_require__(/*! ./sourceModel/loader/FileLoader */ "./src/sourceModel/loader/FileLoader.ts");
-const CArray_1 = __webpack_require__(/*! ./DataStruct/CArray */ "./src/DataStruct/CArray.ts");
 class Main {
     constructor() {
         this.stage = new CDocument_1.default();
@@ -1210,7 +1271,8 @@ class Main {
     start() {
         let requestAnimationFrame = window.requestAnimationFrame;
         let loop = () => {
-            this.stage.sysRender();
+            // this.stage.sysRender();
+            this.stage.renderElement();
             requestAnimationFrame(loop);
         };
         loop();
@@ -1242,6 +1304,7 @@ class Main {
         i.style.rotate = 45;
         i.style.anchorX = 112;
         i.style.anchorY = 84;
+        i.style.clip = Box_1.default.createBox(10, 10, 100, 100);
         g.appendChild(i);
         setInterval(() => {
             i.style.rotate++;
@@ -1250,11 +1313,6 @@ class Main {
         i.addEventListener("tap", (e) => { console.log("tap"); }, this);
         i.addEventListener("tapMove", (e) => { console.log("tapMove"); }, this);
         this.loadTest();
-        let ca = new CArray_1.default(1, 2, 3, 4, 5);
-        let cb = new CArray_1.default(6, 7, 8);
-        // console.log(ca[0] = 12)
-        let arr = ca.concat(cb);
-        console.log(arr instanceof CArray_1.default);
     }
     loadTest() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -1411,6 +1469,8 @@ class FileLoader extends EventDispatch_1.default {
      */
     load(url) {
         let xhr = new XMLHttpRequest();
+        //不设置文件样式默认以二进制加载文件
+        xhr.responseType = this.responseType || FileLoaderType.ARRAYBUFFER;
         xhr.addEventListener("readystatechange", this.onReadystatechange);
         xhr.addEventListener("error", this.onError);
         xhr.open("get", url);

@@ -27,20 +27,21 @@ class Main {
     private start():void{
         let requestAnimationFrame = window.requestAnimationFrame;
         let loop = ()=>{
-            this.stage.sysRender();
+            // this.stage.sysRender();
+            this.stage.renderElement();
             requestAnimationFrame(loop);
         }
         loop();
     }
 
     private test(): void {
-        for(let i = 0 ;i < 300;i++){
-            let k = new CImage();
-            k.src = "./test1.jpeg"
-            k.style.x = i * 10;
-            k.style.y = i *10;
-            this.stage.appendChild(k)
-        }
+        // for(let i = 0 ;i < 300;i++){
+        //     let k = new CImage();
+        //     k.src = "./test1.jpeg"
+        //     k.style.x = i * 10;
+        //     k.style.y = i *10;
+        //     this.stage.appendChild(k)
+        // }
         let g = new CDOMContainer();
         g.style.x = 50
         g.style.y = 50
@@ -62,6 +63,7 @@ class Main {
         i.style.rotate = 45;
         i.style.anchorX = 112;
         i.style.anchorY = 84
+        i.style.clip = Box.createBox(10,10,100,100)
         g.appendChild(i);
         setInterval(()=>{
             i.style.rotate ++
@@ -70,11 +72,6 @@ class Main {
         i.addEventListener("tap",(e)=>{console.log("tap")},this)
         i.addEventListener("tapMove",(e)=>{console.log("tapMove")},this)
         this.loadTest()
-        let ca = new CArray(1,2,3,4,5)
-        let cb = new CArray(6,7,8)
-        // console.log(ca[0] = 12)
-        let arr = ca.concat(cb)
-        console.log(arr instanceof CArray)
   
 
     }

@@ -35,6 +35,7 @@ export default class CText extends DOMBase{
             text:"",
             textAlign:"left",
             fontStyle:"normal",
+            clip:null
         }
         this.reRender = true;
         this.matrix = TransformMatrix.createTransFormMatrix();
