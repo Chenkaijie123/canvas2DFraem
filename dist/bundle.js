@@ -221,16 +221,17 @@ class CDocument extends CDOMContainer_1.default {
             if (!i.style.visible || !i.style.alpha || i.matrix.a == 0 && i.matrix.b == 0 || i.matrix.c == 0 && i.matrix.d == 0)
                 continue;
             if (i.parent instanceof CDocument) {
-                ctx.setTransform(...i.matrix.value());
+                ctx.setTransform.apply(ctx, i.matrix.value());
             }
             else {
-                ctx.transform(...i.matrix.value());
+                ctx.transform.apply(ctx, i.matrix.value());
             }
             if (i.style.clip) {
                 let clip = i.style.clip;
                 if (clip.width <= 0 || clip.height <= 0)
                     continue;
                 ctx.save();
+                ctx.beginPath();
                 ctx.rect(clip.x, clip.y, clip.width, clip.height);
                 ctx.clip();
                 i.render(ctx);
@@ -370,11 +371,12 @@ class DOMBase extends EventDispatch_1.default {
             rotate: 0,
             skewX: 0,
             skewY: 0,
+            scrollerX: 0,
+            scrollerY: 0,
             clip: null
         };
         this.reRender = true;
         this.matrix = TransformMatrix_1.default.createTransFormMatrix();
-        // this.position = Point.createPiont();
     }
     reset() {
     }
@@ -554,7 +556,7 @@ class DOMEvent {
         let p = Point_1.default.createPiont(x, y);
         let list = [];
         this.document.iterator(this.document.children, (v) => {
-            if (v.tapCount == 0)
+            if (v.tapCount == 0 || !v.style.visible || !v.style.alpha)
                 return;
             v.toGlobal(p.setPoint(x, y));
             let res = v.contain(p.x, p.y);
@@ -693,7 +695,7 @@ class EventDispatch {
             map[type] = [[fn, caller]];
         else
             map[type].push([fn, caller]);
-        if (useCapture && this.checkIsTapEvt(type)) {
+        if (this.checkIsTapEvt(type)) { //useCapture && 
             map = this.captureMap;
             if (!map[type])
                 map[type] = [[fn, caller]];
@@ -816,6 +818,14 @@ var SysTem;
     SysTem["LOAD_ERROR"] = "LOAD_ERROR";
     /**文件下载状态改变 */
     SysTem["READY_STATE_CHANGE"] = "READY_STATE_CHANGE";
+    /**开始点击 */
+    SysTem["TAP_BEGIN"] = "tapBegin";
+    /**抬起 */
+    SysTem["TAP_END"] = "tapEnd";
+    /**点击取消 */
+    SysTem["TAP_CANCEL"] = "tapCancel";
+    /**移动 */
+    SysTem["TAP_MOVE"] = "tapMove";
 })(SysTem = exports.SysTem || (exports.SysTem = {}));
 
 
@@ -1079,18 +1089,35 @@ exports.default = Point;
 Object.defineProperty(exports, "__esModule", { value: true });
 const Matrix_1 = __webpack_require__(/*! ./Matrix */ "./src/canvasDOM/math/Matrix.ts");
 const anglePI = Math.PI / 180;
+const sinMap = {};
+const cosMap = {};
+for (let i = 0; i < 360; i++) {
+    sinMap[i] = Math.sin(i * anglePI);
+}
+for (let i = 0; i < 360; i++) {
+    cosMap[i] = Math.cos(i * anglePI);
+}
 function sin(r) {
-    let angle = r == 0 ? 0 : r * anglePI;
-    return Math.sin(angle);
+    let index = r < 0 ? -r : r;
+    if (index >= 360)
+        index %= 360;
+    return r > 0 ? sinMap[index >> 0] : -sinMap[index >> 0];
+    // let angle = r == 0 ? 0 : r * anglePI
+    // return Math.sin(angle);
 }
 function cos(r) {
-    let angle = r == 0 ? 0 : r * anglePI;
-    return Math.cos(angle);
+    if (r < 0)
+        r *= -1;
+    if (r >= 360)
+        r %= 360;
+    return cosMap[r >> 0];
+    // let angle = r == 0 ? 0 : r * anglePI
+    // return Math.cos(angle);
 }
-function tan(r) {
-    let angle = r == 0 ? 0 : r * anglePI;
-    return Math.tan(angle);
-}
+// function tan(r: number) {
+//     let angle = r == 0 ? 0 : r * anglePI
+//     return Math.tan(angle);
+// }
 /**
  * 装换矩阵
  * a 水平缩放绘图
@@ -1109,11 +1136,11 @@ class TransformMatrix extends Matrix_1.default {
         this.setMatrix(scaleX, skewX, skewY, scaleY, offsetX, offsetY);
     }
     setByStyle(style) {
-        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y, width, height } = style;
+        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y, scrollerX, scrollerY } = style;
         let rotateC = cos(rotate);
         let rotateS = sin(rotate);
-        let tx = x * scaleX;
-        let ty = y * scaleY;
+        let tx = (x + scrollerX) * scaleX;
+        let ty = (y + scrollerY) * scaleY;
         let a = rotateC * scaleX;
         let b = rotateS * scaleX;
         let c = -rotateS * scaleY;
@@ -1237,6 +1264,93 @@ exports.default = TransformMatrix;
 
 /***/ }),
 
+/***/ "./src/canvasDOM/ui/Scroller.ts":
+/*!**************************************!*\
+  !*** ./src/canvasDOM/ui/Scroller.ts ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const PlugC_1 = __webpack_require__(/*! ../global/PlugC */ "./src/canvasDOM/global/PlugC.ts");
+const Box_1 = __webpack_require__(/*! ../math/Box */ "./src/canvasDOM/math/Box.ts");
+class scroller {
+    constructor() {
+        this.horizontal = true; //是否允许水平滚动
+        this.vertical = true; //是否允许垂直滚动
+        this._scrollerV = 0; //距离顶部的距离
+        this._scrollerH = 0; //距离左边的距离
+        this.sign = {};
+    }
+    /**垂直滚动 */
+    set scrollerV(v) {
+        if (this.vertical) {
+            this._scrollerV = v;
+            if (this.scrollerObject.children) {
+                for (let i of this.scrollerObject.children) {
+                    i.style.scrollerY = v;
+                }
+            }
+        }
+    }
+    get scrollerV() {
+        return this._scrollerV;
+    }
+    /**水平滚动 */
+    set scrollerH(v) {
+        if (this.horizontal) {
+            this._scrollerH = v;
+            if (this.scrollerObject.children) {
+                for (let i of this.scrollerObject.children) {
+                    i.style.scrollerY = v;
+                }
+            }
+        }
+    }
+    get scrollerH() {
+        return this._scrollerH;
+    }
+    /**初始化滚动对象 */
+    init(c) {
+        this.scrollerObject = c;
+        let { x, y, width, height } = c.style;
+        c.style.clip = Box_1.default.createBox(x, y, width, height);
+        this.initEvent();
+    }
+    initEvent() {
+        let obj = this.scrollerObject;
+        obj.on(PlugC_1.SysTem.TAP_BEGIN, this.onBegin, this);
+        obj.on(PlugC_1.SysTem.TAP_MOVE, this.onMove, this);
+        obj.on(PlugC_1.SysTem.TAP_CANCEL, this.onCancel, this);
+    }
+    onMove(e) {
+        let [offX, offY] = [e.clientX - this.sign.x, e.clientY - this.sign.y];
+        console.log(offX, offY);
+        this.sign.x = e.clientX;
+        this.sign.y = e.clientY;
+        if (this.horizontal && offX != 0) {
+            this.scrollerH += offX;
+        }
+        if (this.vertical && offY != 0) {
+            this.scrollerH += offY;
+        }
+    }
+    onBegin(e) {
+        this.sign.x = e.clientX;
+        this.sign.y = e.clientY;
+    }
+    onCancel(e) {
+        this.sign.x = null;
+        this.sign.y = null;
+    }
+}
+exports.default = scroller;
+
+
+/***/ }),
+
 /***/ "./src/index.ts":
 /*!**********************!*\
   !*** ./src/index.ts ***!
@@ -1261,6 +1375,7 @@ const CDocument_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDocument */ "./src/
 const CDOMContainer_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDOMContainer */ "./src/canvasDOM/DOM/CDOMContainer.ts");
 const GlobalMgr_1 = __webpack_require__(/*! ./mgr/GlobalMgr */ "./src/mgr/GlobalMgr.ts");
 const FileLoader_1 = __webpack_require__(/*! ./sourceModel/loader/FileLoader */ "./src/sourceModel/loader/FileLoader.ts");
+const Scroller_1 = __webpack_require__(/*! ./canvasDOM/ui/Scroller */ "./src/canvasDOM/ui/Scroller.ts");
 class Main {
     constructor() {
         this.stage = new CDocument_1.default();
@@ -1278,19 +1393,21 @@ class Main {
         loop();
     }
     test() {
-        for (let i = 0; i < 300; i++) {
+        let g = new CDOMContainer_1.default();
+        let sc = new Scroller_1.default();
+        g.style.x = 50;
+        g.style.y = 50;
+        g.style.width = g.style.height = 600;
+        sc.init(g);
+        this.stage.appendChild(g);
+        for (let i = 0; i < 5; i++) {
             let k = new CImage_1.default();
             k.src = "./test1.jpeg";
             k.style.x = i * 10;
             k.style.y = i * 10;
-            this.stage.appendChild(k);
+            g.appendChild(k);
         }
-        let g = new CDOMContainer_1.default();
-        g.style.x = 50;
-        g.style.y = 50;
-        g.style.width = g.style.height = 600;
         // g.addEventListener("click",(e)=>{e.stopPropagation()},this)
-        this.stage.appendChild(g);
         // let i1 = new CImage();
         // i1.src = "./test1.jpeg"
         // i1.style.x = 300;

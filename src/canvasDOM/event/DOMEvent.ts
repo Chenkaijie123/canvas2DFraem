@@ -129,7 +129,7 @@ export default class DOMEvent {
         let p = Point.createPiont(x, y);
         let list: DOMBase[] = [];
         this.document.iterator(this.document.children, (v) => {
-            if (v.tapCount == 0) return;
+            if (v.tapCount == 0 || !v.style.visible || !v.style.alpha) return;
             v.toGlobal(p.setPoint(x, y))
             let res = v.contain(p.x, p.y)
             if (res) {

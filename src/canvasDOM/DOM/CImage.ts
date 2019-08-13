@@ -1,5 +1,4 @@
 import {DOMBase} from "./DOMBase"
-import { resource } from "../../mgr/GlobalMgr";
 import { ImgLoader } from "../../sourceModel/loader/ImgLoader";
 export default class CImage extends DOMBase{
     private _src:string

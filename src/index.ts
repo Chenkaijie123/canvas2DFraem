@@ -13,6 +13,7 @@ import { TapEvent } from "./canvasDOM/event/TouchEvent";
 import { GlobalMgr } from "./mgr/GlobalMgr";
 import { FileLoader } from "./sourceModel/loader/FileLoader";
 import CArray from "./DataStruct/CArray";
+import scroller from "./canvasDOM/ui/Scroller";
 
 class Main {
     private stage: CDocument
@@ -35,19 +36,22 @@ class Main {
     }
 
     private test(): void {
-        // for(let i = 0 ;i < 300;i++){
-        //     let k = new CImage();
-        //     k.src = "./test1.jpeg"
-        //     k.style.x = i * 10;
-        //     k.style.y = i *10;
-        //     this.stage.appendChild(k)
-        // }
+
         let g = new CDOMContainer();
+        let sc = new scroller()
         g.style.x = 50
         g.style.y = 50
         g.style.width = g.style.height = 600
-        // g.addEventListener("click",(e)=>{e.stopPropagation()},this)
+        sc.init(g)
         this.stage.appendChild(g);
+        for(let i = 0 ;i < 5;i++){
+            let k = new CImage();
+            k.src = "./test1.jpeg"
+            k.style.x = i * 10;
+            k.style.y = i *10;
+            g.appendChild(k)
+        }
+        // g.addEventListener("click",(e)=>{e.stopPropagation()},this)
 
         // let i1 = new CImage();
         // i1.src = "./test1.jpeg"
@@ -72,7 +76,6 @@ class Main {
         i.addEventListener("tap",(e)=>{console.log("tap")},this)
         i.addEventListener("tapMove",(e)=>{console.log("tapMove")},this)
         this.loadTest()
-  
 
     }
 

@@ -59,7 +59,7 @@ export default class EventDispatch {
         let map = this.bubblingMap;
         if (!map[type]) map[type] = [[fn, caller]];
         else map[type].push([fn, caller]);
-        if(useCapture && this.checkIsTapEvt(type)){
+        if(this.checkIsTapEvt(type)){//useCapture && 
             map = this.captureMap;
             if (!map[type]) map[type] = [[fn, caller]];
             else map[type].push([fn, caller]);

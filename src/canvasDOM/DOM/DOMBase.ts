@@ -1,6 +1,5 @@
 import TransformMatrix from "../math/TransformMatrix";
 import Point from "../math/Point";
-import Matrix from "../math/Matrix";
 import EventDispatch from "../event/EventDispatch";
 import Box from "../math/Box";
 
@@ -19,7 +18,6 @@ export abstract class DOMBase extends EventDispatch{
     protected proxy: DOMStyleBase
     protected deep: number
     public matrix: TransformMatrix
-    // public position: Point;//全局坐标
     public hashCode: number
     public get style() {
         return this.proxy;
@@ -82,11 +80,12 @@ export abstract class DOMBase extends EventDispatch{
             rotate: 0,
             skewX: 0,
             skewY: 0,
+            scrollerX:0,
+            scrollerY:0,
             clip:null
         }
         this.reRender = true;
         this.matrix = TransformMatrix.createTransFormMatrix();
-        // this.position = Point.createPiont();
     }
 
     protected reset(): void {
@@ -137,11 +136,6 @@ export abstract class DOMBase extends EventDispatch{
     }
 }
 
-// interface DOMType {
-//     CDocument: string
-//     DOMBase: string
-//     CImage: string
-// }
 
 
 export interface DOMStyleBase {
@@ -158,19 +152,10 @@ export interface DOMStyleBase {
     rotate: number
     skewX: number
     skewY: number
+    scrollerX:number//滚动实现
+    scrollerY:number//滚动实现
     clip:Box
 }
-
-// interface DOMStyleBaseKeyOf{
-//     "x":number
-//     "y":number
-//     "scaleX":number
-//     "scaleY":number
-//     "visible":boolean
-//     "alpha":number
-//     "width":number
-//     "height":number
-// }
 
 /**可以添加其上的DOM节点 */
 export interface DOMContainer extends DOMBase {

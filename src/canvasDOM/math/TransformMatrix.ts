@@ -2,20 +2,39 @@ import Matrix from "./Matrix"
 import { DOMStyleBase } from "../DOM/DOMBase"
 import Point from "./Point";
 const anglePI = Math.PI / 180;
+const sinMap: { [rotate: number]: number } = {};
+const cosMap: { [rotate: number]: number } = {};
+for (let i = 0; i < 360; i++) {
+    sinMap[i] = Math.sin(i * anglePI)
+}
+
+for (let i = 0; i < 360; i++) {
+    cosMap[i] = Math.cos(i * anglePI)
+}
+
+
+
 function sin(r: number) {
-    let angle = r == 0 ? 0 : r * anglePI
-    return Math.sin(angle);
+    let index: number = r < 0 ? -r : r;
+    if (index >= 360) index %= 360;
+    return r > 0 ? sinMap[index >> 0] : -sinMap[index >> 0]
+
+    // let angle = r == 0 ? 0 : r * anglePI
+    // return Math.sin(angle);
 }
 
 function cos(r: number) {
-    let angle = r == 0 ? 0 : r * anglePI
-    return Math.cos(angle);
+    if (r < 0) r *= -1;
+    if (r >= 360) r %= 360;
+    return cosMap[r >> 0]
+    // let angle = r == 0 ? 0 : r * anglePI
+    // return Math.cos(angle);
 }
 
-function tan(r: number) {
-    let angle = r == 0 ? 0 : r * anglePI
-    return Math.tan(angle);
-}
+// function tan(r: number) {
+//     let angle = r == 0 ? 0 : r * anglePI
+//     return Math.tan(angle);
+// }
 /**
  * 装换矩阵
  * a 水平缩放绘图
@@ -41,11 +60,11 @@ export default class TransformMatrix extends Matrix {
     }
 
     public setByStyle(style: DOMStyleBase): void {
-        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y, width, height } = style;
+        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y ,scrollerX,scrollerY} = style;
         let rotateC = cos(rotate);
         let rotateS = sin(rotate);
-        let tx = x * scaleX;
-        let ty = y * scaleY;
+        let tx = (x + scrollerX) * scaleX;
+        let ty = (y + scrollerY) * scaleY;
         let a = rotateC * scaleX;
         let b = rotateS * scaleX;
         let c = -rotateS * scaleY;

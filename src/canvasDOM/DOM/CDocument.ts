@@ -97,14 +97,15 @@ export default class CDocument extends CDOMContainer {
             }
             if (!i.style.visible || !i.style.alpha || i.matrix.a == 0 && i.matrix.b == 0 || i.matrix.c == 0 && i.matrix.d == 0) continue;
             if (i.parent instanceof CDocument) {
-                ctx.setTransform(...i.matrix.value());
+                ctx.setTransform.apply(ctx,i.matrix.value())
             } else {
-                ctx.transform(...i.matrix.value());
+                ctx.transform.apply(ctx,i.matrix.value())
             }
             if (i.style.clip) {
                 let clip = i.style.clip
                 if (clip.width <= 0 || clip.height <= 0) continue;
                 ctx.save();
+                ctx.beginPath();
                 ctx.rect(clip.x,clip.y,clip.width,clip.height);
                 ctx.clip();
                 i.render(ctx);

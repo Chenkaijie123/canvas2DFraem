@@ -1,6 +1,5 @@
 import { DOMBase, DOMStyleBase } from "./DOMBase";
 import TransformMatrix from "../math/TransformMatrix";
-import Point from "../math/Point";
 
 export default class CText extends DOMBase{
     public _style: TextStyle
@@ -27,6 +26,8 @@ export default class CText extends DOMBase{
             skewX: 0,
             skewY: 0,
             fontSize:24,
+            scrollerX:0,
+            scrollerY:0,
             fontFamily:"微软雅黑",
             textColor:0xffffff,
             border:0,
@@ -39,10 +40,8 @@ export default class CText extends DOMBase{
         }
         this.reRender = true;
         this.matrix = TransformMatrix.createTransFormMatrix();
-        // this.position = Point.createPiont();
     }
     public render(ctx:CanvasRenderingContext2D):void{
-        // ctx.setTransform(...this.matrix.value())
         let style = `${this.style.fontStyle} normal ${this.style.bold?"bold":"normal"} ${this.style.fontSize}px ${this.style.fontFamily}`
         if(ctx.font != style)ctx.font = style;
         let color = `#${this.style.textColor.toString(16)}`;
@@ -53,7 +52,6 @@ export default class CText extends DOMBase{
             if(ctx.strokeStyle != color) ctx.strokeStyle = color;
             ctx.strokeText(this.style.text,this.style.anchorX,this.style.anchorY)
         }
-        // console.log(ctx.measureText(this.style.text))
         
     }
 }
