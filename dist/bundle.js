@@ -1139,8 +1139,8 @@ class TransformMatrix extends Matrix_1.default {
         let { rotate, scaleX, scaleY, anchorX, anchorY, x, y, scrollerX, scrollerY } = style;
         let rotateC = cos(rotate);
         let rotateS = sin(rotate);
-        let tx = (x + scrollerX) * scaleX;
-        let ty = (y + scrollerY) * scaleY;
+        let tx = x * scaleX; //(x + scrollerX) * scaleX;
+        let ty = y * scaleY; //(y + scrollerY) * scaleY;
         let a = rotateC * scaleX;
         let b = rotateS * scaleX;
         let c = -rotateS * scaleY;
