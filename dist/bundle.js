@@ -86,6 +86,34 @@
 /************************************************************************/
 /******/ ({
 
+/***/ "./src/DataStruct/Oberserve.ts":
+/*!*************************************!*\
+  !*** ./src/DataStruct/Oberserve.ts ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+let hashcode = 0;
+class Oberserve {
+    static watch(o) {
+        let w = new Proxy(o, {
+            set(target, key, value) {
+                console.log(value);
+                return Reflect.set(target, key, value);
+            }
+        });
+        w["$hashcode"] = hashcode++;
+        return w;
+    }
+}
+exports.default = Oberserve;
+
+
+/***/ }),
+
 /***/ "./src/canvasDOM/DOM/CDOMContainer.ts":
 /*!********************************************!*\
   !*** ./src/canvasDOM/DOM/CDOMContainer.ts ***!
@@ -1139,8 +1167,8 @@ class TransformMatrix extends Matrix_1.default {
         let { rotate, scaleX, scaleY, anchorX, anchorY, x, y, scrollerX, scrollerY } = style;
         let rotateC = cos(rotate);
         let rotateS = sin(rotate);
-        let tx = x * scaleX; //(x + scrollerX) * scaleX;
-        let ty = y * scaleY; //(y + scrollerY) * scaleY;
+        let tx = (x + scrollerX) * scaleX;
+        let ty = (y + scrollerY) * scaleY;
         let a = rotateC * scaleX;
         let b = rotateS * scaleX;
         let c = -rotateS * scaleY;
@@ -1376,6 +1404,7 @@ const CDOMContainer_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDOMContainer */
 const GlobalMgr_1 = __webpack_require__(/*! ./mgr/GlobalMgr */ "./src/mgr/GlobalMgr.ts");
 const FileLoader_1 = __webpack_require__(/*! ./sourceModel/loader/FileLoader */ "./src/sourceModel/loader/FileLoader.ts");
 const Scroller_1 = __webpack_require__(/*! ./canvasDOM/ui/Scroller */ "./src/canvasDOM/ui/Scroller.ts");
+const Oberserve_1 = __webpack_require__(/*! ./DataStruct/Oberserve */ "./src/DataStruct/Oberserve.ts");
 class Main {
     constructor() {
         this.stage = new CDocument_1.default();
@@ -1430,6 +1459,10 @@ class Main {
         i.addEventListener("tap", (e) => { console.log("tap"); }, this);
         i.addEventListener("tapMove", (e) => { console.log("tapMove"); }, this);
         this.loadTest();
+        let a = 1;
+        let w = Oberserve_1.default.watch(a);
+        w = 2;
+        console.log(w);
     }
     loadTest() {
         return __awaiter(this, void 0, void 0, function* () {

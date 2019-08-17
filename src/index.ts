@@ -14,6 +14,7 @@ import { GlobalMgr } from "./mgr/GlobalMgr";
 import { FileLoader } from "./sourceModel/loader/FileLoader";
 import CArray from "./DataStruct/CArray";
 import scroller from "./canvasDOM/ui/Scroller";
+import Oberserve from "./DataStruct/Oberserve";
 
 class Main {
     private stage: CDocument
@@ -76,7 +77,10 @@ class Main {
         i.addEventListener("tap",(e)=>{console.log("tap")},this)
         i.addEventListener("tapMove",(e)=>{console.log("tapMove")},this)
         this.loadTest()
-
+        // let a = 1
+        // let w = Oberserve.watch(a)
+        // w = 2
+        // console.log(w)
     }
 
     private async loadTest():Promise<any>{
