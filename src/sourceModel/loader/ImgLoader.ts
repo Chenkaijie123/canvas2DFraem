@@ -5,7 +5,8 @@ let pool: Array<ImgLoader> = [];
 export class ImgLoader extends EventDispatch {
     static awaitAndPrevent: { [url: string]: ImgLoader[] } = {};//正在加载的资源，避免重复加载
     static LOAD_COMPLETE: string = "LOAD_COMPLETE";
-    static LOAD_ERROR: string = "LOAD_ERROR"
+    static LOAD_ERROR: string = "LOAD_ERROR";
+    static MAX_CACHE_COUNT:number = 50;//最大缓存加载器个数
     public data: HTMLImageElement = null;//加载完成会将结果存放在此
     public loadURL: string = null;
     private loadingElement: HTMLImageElement = null
@@ -77,8 +78,8 @@ export class ImgLoader extends EventDispatch {
     }
 
     public release(): void {
-        if(pool.length > 50) return;//最大缓存51个图片加载器
         this.clearLoader();
+        if(pool.length >= ImgLoader.MAX_CACHE_COUNT) return;//最大缓存图片加载器
         pool.push(this);
     }
 

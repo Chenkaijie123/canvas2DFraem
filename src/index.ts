@@ -77,10 +77,10 @@ class Main {
         i.addEventListener("tap",(e)=>{console.log("tap")},this)
         i.addEventListener("tapMove",(e)=>{console.log("tapMove")},this)
         this.loadTest()
-        // let a = 1
-        // let w = Oberserve.watch(a)
-        // w = 2
-        // console.log(w)
+        let a = []
+        let w = Oberserve.watch(a)
+        w[0] = 12
+        console.log(w)
     }
 
     private async loadTest():Promise<any>{

@@ -100,15 +100,54 @@ let hashcode = 0;
 class Oberserve {
     static watch(o) {
         let w = new Proxy(o, {
+            set(target, key, value, proxy) {
+                if (Reflect.set(target, key, value)) {
+                    let target = Oberserve.map[proxy["$hashcode"]];
+                    let targerCall = target[key];
+                    let defaultCall = target["defaultCall"];
+                    let changeData = [key, value];
+                    if (targerCall) {
+                        for (let i of targerCall)
+                            i.fn.apply(i.caller, changeData.concat(i.args));
+                    }
+                    if (defaultCall) {
+                        for (let i of defaultCall)
+                            i.fn.apply(i.caller, changeData.concat(i.args));
+                    }
+                    return true;
+                }
+                return false;
+            }
+        });
+        let onlyKey = hashcode++;
+        Oberserve.map[onlyKey] = {};
+        w["$hashcode"] = onlyKey;
+        return w;
+    }
+    /**
+     * 绑定行为
+     * @param proxy
+     */
+    static bindAction(proxy, fns, key) {
+    }
+    basicDataWatch(v) {
+        let o = {
+            value: v,
+        };
+        let w = new Proxy(o, {
+            get(key) { },
             set(target, key, value) {
-                console.log(value);
-                return Reflect.set(target, key, value);
+                if (Reflect.set(target, key, value)) {
+                    return true;
+                }
+                return false;
             }
         });
         w["$hashcode"] = hashcode++;
         return w;
     }
 }
+Oberserve.map = {};
 exports.default = Oberserve;
 
 
@@ -1459,9 +1498,9 @@ class Main {
         i.addEventListener("tap", (e) => { console.log("tap"); }, this);
         i.addEventListener("tapMove", (e) => { console.log("tapMove"); }, this);
         this.loadTest();
-        let a = 1;
+        let a = [];
         let w = Oberserve_1.default.watch(a);
-        w = 2;
+        w[0] = 12;
         console.log(w);
     }
     loadTest() {
@@ -1742,9 +1781,9 @@ class ImgLoader extends EventDispatch_1.default {
         }
     }
     release() {
-        if (pool.length > 50)
-            return; //最大缓存51个图片加载器
         this.clearLoader();
+        if (pool.length >= ImgLoader.MAX_CACHE_COUNT)
+            return; //最大缓存图片加载器
         pool.push(this);
     }
     static create() {
@@ -1755,6 +1794,7 @@ class ImgLoader extends EventDispatch_1.default {
 ImgLoader.awaitAndPrevent = {}; //正在加载的资源，避免重复加载
 ImgLoader.LOAD_COMPLETE = "LOAD_COMPLETE";
 ImgLoader.LOAD_ERROR = "LOAD_ERROR";
+ImgLoader.MAX_CACHE_COUNT = 50; //最大缓存加载器个数
 exports.ImgLoader = ImgLoader;
 
 
