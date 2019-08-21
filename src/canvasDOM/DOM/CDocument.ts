@@ -56,29 +56,29 @@ export default class CDocument extends CDOMContainer {
     }
 
     //内部计算并且渲染
-    public sysRender(): void {
-        //todo
-        this.context.setTransform(1, 0, 0, 1, 0, 0)
-        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height)
-        let loot = this.children;
-        let fn = (e: DOMBase) => {
-            //重新计算需要重绘的数据
-            if (e.reRender) {
-                let style = e.style
-                e.matrix.setByStyle(style);//转换矩阵
-                e.reRender = false;
-            }
-            if (e.parent instanceof CDocument) {
-                this.context.setTransform(...e.matrix.value());
-            } else {
-                this.context.transform(...e.matrix.value());
-            }
-            e.render(this.context);
-        }
-        // let t = Date.now()
-        this.iterator(loot, fn);
-        // console.log(Date.now() - t)
-    }
+    // public sysRender(): void {
+    //     //todo
+    //     this.context.setTransform(1, 0, 0, 1, 0, 0)
+    //     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height)
+    //     let loot = this.children;
+    //     let fn = (e: DOMBase) => {
+    //         //重新计算需要重绘的数据
+    //         if (e.reRender) {
+    //             let style = e.style
+    //             e.matrix.setByStyle(style);//转换矩阵
+    //             e.reRender = false;
+    //         }
+    //         if (e.parent instanceof CDocument) {
+    //             this.context.setTransform(...e.matrix.value());
+    //         } else {
+    //             this.context.transform(...e.matrix.value());
+    //         }
+    //         e.render(this.context);
+    //     }
+    //     // let t = Date.now()
+    //     this.iterator(loot, fn);
+    //     // console.log(Date.now() - t)
+    // }
 
     public renderElement():void{
         let ctx = this.context;
@@ -96,6 +96,7 @@ export default class CDocument extends CDOMContainer {
                 i.reRender = false;
             }
             if (!i.style.visible || !i.style.alpha || i.matrix.a == 0 && i.matrix.b == 0 || i.matrix.c == 0 && i.matrix.d == 0) continue;
+            ctx.save();
             if (i.parent instanceof CDocument) {
                 ctx.setTransform.apply(ctx,i.matrix.value())
             } else {
@@ -119,6 +120,7 @@ export default class CDocument extends CDOMContainer {
                     this.renderList(i["children"])
                 }
             }
+            ctx.restore();
         }
     }
 }

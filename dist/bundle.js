@@ -86,69 +86,104 @@
 /************************************************************************/
 /******/ ({
 
-/***/ "./src/DataStruct/Oberserve.ts":
-/*!*************************************!*\
-  !*** ./src/DataStruct/Oberserve.ts ***!
-  \*************************************/
+/***/ "./src/DataStruct/Oberserve/Oberserve.ts":
+/*!***********************************************!*\
+  !*** ./src/DataStruct/Oberserve/Oberserve.ts ***!
+  \***********************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-let hashcode = 0;
-class Oberserve {
+class Observe {
     static watch(o) {
+        let w;
+        w = Observe.createObserveProxy(o);
+        for (let k in o) {
+            if (typeof o[k] == "object") {
+                w[k] = Observe.ProxyMap[o[k]["ObserveID"]] || Observe.watch(o[k]);
+                if (w[k]["parents"] && w[k]["parents"].indexOf(w) != -1) {
+                    w[k]["parents"].push(w);
+                }
+            }
+        }
+        return w;
+    }
+    static bindAction(observe, actfn, caller, key, ...args) {
+        let ObserveID = observe["ObserveID"];
+        let proxyMap = Observe.ProxyMap[ObserveID];
+        let keys = key ? key.split(".") : [];
+        for (let k in keys) {
+            proxyMap = proxyMap[k];
+        }
+        let actMap;
+        if (!keys.length) {
+            actMap = Observe.actionMap[ObserveID]["defaultCall"];
+        }
+        else if (proxyMap) {
+            actMap = Observe.actionMap[proxyMap["ObserveID"]][keys[keys.length - 1]];
+        }
+    }
+    static createObserveProxy(o) {
+        if (typeof o != "object")
+            return null;
+        if (o["ObserveID"] != void 0)
+            return Observe.ProxyMap[o["ObserveID"]];
+        let onlyID = getID();
+        Observe.actionMap[onlyID] = {};
         let w = new Proxy(o, {
             set(target, key, value, proxy) {
                 if (Reflect.set(target, key, value)) {
-                    let target = Oberserve.map[proxy["$hashcode"]];
-                    let targerCall = target[key];
-                    let defaultCall = target["defaultCall"];
-                    let changeData = [key, value];
-                    if (targerCall) {
-                        for (let i of targerCall)
-                            i.fn.apply(i.caller, changeData.concat(i.args));
-                    }
-                    if (defaultCall) {
-                        for (let i of defaultCall)
-                            i.fn.apply(i.caller, changeData.concat(i.args));
-                    }
+                    Observe.run(proxy["ObserveID"], key);
                     return true;
                 }
                 return false;
+            },
+            get(target, key, proxy) {
+                if (!target || !proxy)
+                    return null;
+                return Reflect.get(target, key);
             }
         });
-        let onlyKey = hashcode++;
-        Oberserve.map[onlyKey] = {};
-        w["$hashcode"] = onlyKey;
+        Observe.ProxyMap[onlyID] = w;
+        w["ObserveID"] = o["ObserveID"] = onlyID;
         return w;
     }
-    /**
-     * 绑定行为
-     * @param proxy
-     */
-    static bindAction(proxy, fns, key) {
-    }
-    basicDataWatch(v) {
-        let o = {
-            value: v,
-        };
-        let w = new Proxy(o, {
-            get(key) { },
-            set(target, key, value) {
-                if (Reflect.set(target, key, value)) {
-                    return true;
+    /**执行事件 */
+    static run(ObserveID, key) {
+        let actMap = Observe.actionMap[ObserveID][key];
+        if (actMap) {
+            for (let i of actMap) {
+                i.run();
+            }
+        }
+        actMap = Observe.actionMap[ObserveID]["defaultCall"];
+        if (actMap) {
+            for (let i of actMap) {
+                i.run();
+            }
+        }
+        let parents = Observe.ProxyMap[ObserveID]["parents"];
+        if (parents) {
+            for (let i of parents) {
+                let parActMap = Observe.actionMap[i["ObserveID"]];
+                for (let k in parActMap) {
+                    for (let i of parActMap[k]) {
+                        i.run();
+                    }
                 }
-                return false;
             }
-        });
-        w["$hashcode"] = hashcode++;
-        return w;
+        }
     }
 }
-Oberserve.map = {};
-exports.default = Oberserve;
+Observe.ProxyMap = {};
+Observe.actionMap = {};
+exports.default = Observe;
+function getID() {
+    let id = 0;
+    return (() => id++)();
+}
 
 
 /***/ }),
@@ -247,30 +282,29 @@ class CDocument extends CDOMContainer_1.default {
         this.reRenderDeep = this.reRenderDeep > deep ? deep : this.reRenderDeep;
     }
     //内部计算并且渲染
-    sysRender() {
-        //todo
-        this.context.setTransform(1, 0, 0, 1, 0, 0);
-        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        let loot = this.children;
-        let fn = (e) => {
-            //重新计算需要重绘的数据
-            if (e.reRender) {
-                let style = e.style;
-                e.matrix.setByStyle(style); //转换矩阵
-                e.reRender = false;
-            }
-            if (e.parent instanceof CDocument) {
-                this.context.setTransform(...e.matrix.value());
-            }
-            else {
-                this.context.transform(...e.matrix.value());
-            }
-            e.render(this.context);
-        };
-        // let t = Date.now()
-        this.iterator(loot, fn);
-        // console.log(Date.now() - t)
-    }
+    // public sysRender(): void {
+    //     //todo
+    //     this.context.setTransform(1, 0, 0, 1, 0, 0)
+    //     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height)
+    //     let loot = this.children;
+    //     let fn = (e: DOMBase) => {
+    //         //重新计算需要重绘的数据
+    //         if (e.reRender) {
+    //             let style = e.style
+    //             e.matrix.setByStyle(style);//转换矩阵
+    //             e.reRender = false;
+    //         }
+    //         if (e.parent instanceof CDocument) {
+    //             this.context.setTransform(...e.matrix.value());
+    //         } else {
+    //             this.context.transform(...e.matrix.value());
+    //         }
+    //         e.render(this.context);
+    //     }
+    //     // let t = Date.now()
+    //     this.iterator(loot, fn);
+    //     // console.log(Date.now() - t)
+    // }
     renderElement() {
         let ctx = this.context;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -287,6 +321,7 @@ class CDocument extends CDOMContainer_1.default {
             }
             if (!i.style.visible || !i.style.alpha || i.matrix.a == 0 && i.matrix.b == 0 || i.matrix.c == 0 && i.matrix.d == 0)
                 continue;
+            ctx.save();
             if (i.parent instanceof CDocument) {
                 ctx.setTransform.apply(ctx, i.matrix.value());
             }
@@ -313,6 +348,7 @@ class CDocument extends CDOMContainer_1.default {
                     this.renderList(i["children"]);
                 }
             }
+            ctx.restore();
         }
     }
 }
@@ -360,6 +396,7 @@ class CImage extends DOMBase_1.DOMBase {
         if (!img)
             return;
         ctx.drawImage(img, 0, 0);
+        // console.log(this.hashCode,this.style.x,this.style.y,this.style.width,this.style.height,this.style.scrollerX,this.style.scrollerY)
     }
 }
 exports.default = CImage;
@@ -1206,8 +1243,8 @@ class TransformMatrix extends Matrix_1.default {
         let { rotate, scaleX, scaleY, anchorX, anchorY, x, y, scrollerX, scrollerY } = style;
         let rotateC = cos(rotate);
         let rotateS = sin(rotate);
-        let tx = (x + scrollerX) * scaleX;
-        let ty = (y + scrollerY) * scaleY;
+        let tx = x * scaleX;
+        let ty = y * scaleY;
         let a = rotateC * scaleX;
         let b = rotateS * scaleX;
         let c = -rotateS * scaleY;
@@ -1221,9 +1258,9 @@ class TransformMatrix extends Matrix_1.default {
             tx = tx + tx - (sx - ancX * scaleX);
             ty = ty + ty - (sy - ancY * scaleY);
         }
-        this.setMatrix(a, b, c, d, tx, ty);
+        this.setMatrix(a, b, c, d, tx + scrollerX * scaleX, ty + scrollerY * scaleY);
         //---------------------------------利用矩阵叠加实现-----------------------------------------
-        // let matrix = this.translateMatrix(x - anchorX,y - anchorY);
+        // let matrix = this.translateMatrix(x - anchorX + scrollerX,y - anchorY + scrollerY);
         // if(rotate != 0) matrix.MatrixMulti(this.rotateMatrix(rotate));
         // if(scaleX != 1 || scaleY != 1) matrix.MatrixMulti(this.scaleMatrix(scaleX,scaleY));
         // this.setMatrix(...matrix.value());
@@ -1358,6 +1395,7 @@ class scroller {
             if (this.scrollerObject.children) {
                 for (let i of this.scrollerObject.children) {
                     i.style.scrollerY = v;
+                    // i.style.x = v;
                 }
             }
         }
@@ -1394,14 +1432,14 @@ class scroller {
     }
     onMove(e) {
         let [offX, offY] = [e.clientX - this.sign.x, e.clientY - this.sign.y];
-        console.log(offX, offY);
+        // console.log(offX, offY,e.clientX,e.clientY )
         this.sign.x = e.clientX;
         this.sign.y = e.clientY;
         if (this.horizontal && offX != 0) {
             this.scrollerH += offX;
         }
         if (this.vertical && offY != 0) {
-            this.scrollerH += offY;
+            this.scrollerV += offY;
         }
     }
     onBegin(e) {
@@ -1437,13 +1475,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const CImage_1 = __webpack_require__(/*! ./canvasDOM/DOM/CImage */ "./src/canvasDOM/DOM/CImage.ts");
-const Box_1 = __webpack_require__(/*! ./canvasDOM/math/Box */ "./src/canvasDOM/math/Box.ts");
 const CDocument_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDocument */ "./src/canvasDOM/DOM/CDocument.ts");
 const CDOMContainer_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDOMContainer */ "./src/canvasDOM/DOM/CDOMContainer.ts");
 const GlobalMgr_1 = __webpack_require__(/*! ./mgr/GlobalMgr */ "./src/mgr/GlobalMgr.ts");
 const FileLoader_1 = __webpack_require__(/*! ./sourceModel/loader/FileLoader */ "./src/sourceModel/loader/FileLoader.ts");
 const Scroller_1 = __webpack_require__(/*! ./canvasDOM/ui/Scroller */ "./src/canvasDOM/ui/Scroller.ts");
-const Oberserve_1 = __webpack_require__(/*! ./DataStruct/Oberserve */ "./src/DataStruct/Oberserve.ts");
+const Oberserve_1 = __webpack_require__(/*! ./DataStruct/Oberserve/Oberserve */ "./src/DataStruct/Oberserve/Oberserve.ts");
 class Main {
     constructor() {
         this.stage = new CDocument_1.default();
@@ -1471,37 +1508,30 @@ class Main {
         for (let i = 0; i < 5; i++) {
             let k = new CImage_1.default();
             k.src = "./test1.jpeg";
-            k.style.x = i * 10;
-            k.style.y = i * 10;
+            k.style.x = 100;
+            k.style.y = i * 100;
             g.appendChild(k);
         }
-        // g.addEventListener("click",(e)=>{e.stopPropagation()},this)
-        // let i1 = new CImage();
-        // i1.src = "./test1.jpeg"
-        // i1.style.x = 300;
-        // i1.style.y = 300;
-        // this.stage.appendChild(i1);
-        let i = new CImage_1.default();
-        i.src = "./test1.jpeg";
-        i.style.x = 300;
-        i.style.y = 300;
-        // i.style.scaleX = .5
-        i.style.rotate = 45;
-        i.style.anchorX = 112;
-        i.style.anchorY = 84;
-        i.style.clip = Box_1.default.createBox(10, 10, 100, 100);
-        g.appendChild(i);
-        setInterval(() => {
-            i.style.rotate++;
-        }, 50);
-        i.addEventListener("tapBegin", (e) => { console.log(e); e.stopPropagation(); }, this, true);
-        i.addEventListener("tap", (e) => { console.log("tap"); }, this);
-        i.addEventListener("tapMove", (e) => { console.log("tapMove"); }, this);
+        // let i = new CImage();
+        // i.src = "./test1.jpeg"
+        // i.style.x = 300;
+        // i.style.y = 300;
+        // i.style.rotate = 45;
+        // i.style.anchorX = 112;
+        // i.style.anchorY = 84
+        // i.style.clip = Box.createBox(10,10,100,100)
+        // g.appendChild(i);
+        // setInterval(()=>{
+        //     i.style.x++
+        // },50)
+        // i.addEventListener("tapBegin",(e)=>{console.log(e);e.stopPropagation()},this,true)
+        // i.addEventListener("tap",(e)=>{console.log("tap")},this)
+        // i.addEventListener("tapMove",(e)=>{console.log("tapMove")},this)
         this.loadTest();
-        let a = [];
+        let a = { name: { firstName: "a", lastName: "b" } };
         let w = Oberserve_1.default.watch(a);
-        w[0] = 12;
-        console.log(w);
+        w.name.firstName = "ccc";
+        console.log(w.name);
     }
     loadTest() {
         return __awaiter(this, void 0, void 0, function* () {

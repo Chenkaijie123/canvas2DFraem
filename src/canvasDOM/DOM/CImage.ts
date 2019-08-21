@@ -30,6 +30,7 @@ export default class CImage extends DOMBase{
         let img = this.treasure;
         if(!img) return;
         ctx.drawImage(img,0,0);
+        // console.log(this.hashCode,this.style.x,this.style.y,this.style.width,this.style.height,this.style.scrollerX,this.style.scrollerY)
         
     }
 

@@ -17,6 +17,7 @@ export default class scroller {
             if (this.scrollerObject.children) {
                 for (let i of this.scrollerObject.children) {
                     i.style.scrollerY = v;
+                    // i.style.x = v;
                 }
             }
         }
@@ -57,14 +58,14 @@ export default class scroller {
 
     private onMove(e: TapEvent): void {
         let [offX, offY] = [e.clientX - this.sign.x, e.clientY - this.sign.y];
-        console.log(offX, offY)
+        // console.log(offX, offY,e.clientX,e.clientY )
         this.sign.x = e.clientX;
         this.sign.y = e.clientY;
         if (this.horizontal && offX != 0) {
             this.scrollerH += offX;
         }
         if (this.vertical && offY != 0) {
-            this.scrollerH += offY;
+            this.scrollerV += offY;
         }
 
     }

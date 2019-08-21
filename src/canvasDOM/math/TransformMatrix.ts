@@ -60,11 +60,11 @@ export default class TransformMatrix extends Matrix {
     }
 
     public setByStyle(style: DOMStyleBase): void {
-        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y ,scrollerX,scrollerY} = style;
+        let { rotate, scaleX, scaleY, anchorX, anchorY, x, y, scrollerX, scrollerY } = style;
         let rotateC = cos(rotate);
         let rotateS = sin(rotate);
-        let tx = (x + scrollerX) * scaleX;
-        let ty = (y + scrollerY) * scaleY;
+        let tx = x * scaleX;
+        let ty = y * scaleY;
         let a = rotateC * scaleX;
         let b = rotateS * scaleX;
         let c = -rotateS * scaleY;
@@ -78,13 +78,13 @@ export default class TransformMatrix extends Matrix {
             tx = tx + tx - (sx - ancX * scaleX)
             ty = ty + ty - (sy - ancY * scaleY)
         }
-        this.setMatrix(a, b, c, d, tx, ty);
+        this.setMatrix(a, b, c, d, tx + scrollerX * scaleX, ty + scrollerY * scaleY);
 
 
 
 
         //---------------------------------利用矩阵叠加实现-----------------------------------------
-        // let matrix = this.translateMatrix(x - anchorX,y - anchorY);
+        // let matrix = this.translateMatrix(x - anchorX + scrollerX,y - anchorY + scrollerY);
         // if(rotate != 0) matrix.MatrixMulti(this.rotateMatrix(rotate));
         // if(scaleX != 1 || scaleY != 1) matrix.MatrixMulti(this.scaleMatrix(scaleX,scaleY));
         // this.setMatrix(...matrix.value());
