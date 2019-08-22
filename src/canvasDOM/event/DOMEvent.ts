@@ -97,6 +97,10 @@ export default class DOMEvent {
     }.bind(this);
 
     private onMove: (e: MouseEvent) => any = function (e: MouseEvent) {
+        if (!e.buttons) {
+            this.onTapEnd(e);
+            return;
+        }
         let t: DOMEvent = this;
         let list = t.getDOM(e);
         let index: number = list.length - 1;

@@ -13,4 +13,16 @@ export enum SysTem{
     TAP_CANCEL = "tapCancel",
     /**移动 */
     TAP_MOVE = "tapMove",
+
+
+     /**显示对象添加到节点 */
+    CHILD_ADD = "CHILD_ADD",
+    /**显示子对象从显示列表移除 */
+    CHILD_REMOVE = "CHILD_REMOVE",
+    /**显示对象完成，加载并且正确显示 */
+    DOM_COMPLETE = "DOM_COMPLETE",
+    /**大小改变 */
+    RESIZE = "RESIZE",
+    /**帧前事件 */
+    RENDER = "RENDER",
 }

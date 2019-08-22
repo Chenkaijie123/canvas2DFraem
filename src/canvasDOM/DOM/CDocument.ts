@@ -104,10 +104,14 @@ export default class CDocument extends CDOMContainer {
             }
             if (i.style.clip) {
                 let clip = i.style.clip
-                if (clip.width <= 0 || clip.height <= 0) continue;
+                if (clip.width <= 0 || clip.height <= 0) {
+                    ctx.restore();
+                    continue;
+                }
                 ctx.save();
                 ctx.beginPath();
                 ctx.rect(clip.x,clip.y,clip.width,clip.height);
+                ctx.stroke()
                 ctx.clip();
                 i.render(ctx);
                 if(i["children"]){

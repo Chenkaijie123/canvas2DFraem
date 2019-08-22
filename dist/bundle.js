@@ -199,18 +199,18 @@ function getID() {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const DOMBase_1 = __webpack_require__(/*! ./DOMBase */ "./src/canvasDOM/DOM/DOMBase.ts");
+const Box_1 = __webpack_require__(/*! ../math/Box */ "./src/canvasDOM/math/Box.ts");
+const PlugC_1 = __webpack_require__(/*! ../global/PlugC */ "./src/canvasDOM/global/PlugC.ts");
+const Global_1 = __webpack_require__(/*! ../global/Global */ "./src/canvasDOM/global/Global.ts");
 /**容器类 */
 class CDOMContainer extends DOMBase_1.DOMBase {
-    constructor() {
-        super(...arguments);
-        this.children = [];
-    }
     appendChild(child) {
         if (child.parent == this)
             return this;
         child.removeSelf();
         this.children.push(child);
         child.parent = this;
+        this.dispatch(PlugC_1.SysTem.CHILD_ADD, child);
         return this;
     }
     removeChild(child) {
@@ -219,7 +219,57 @@ class CDOMContainer extends DOMBase_1.DOMBase {
         let index = this.children.indexOf(child);
         this.children.splice(index, 1);
         child.parent = null;
+        this.dispatch(PlugC_1.SysTem.CHILD_REMOVE, child);
         return this;
+    }
+    /**
+     * 获取子内容边界
+     * 该方法会忽略孙对象及更深对象的边界，仅仅是子对象的宽度边界
+     */
+    getContentBox() {
+        let box;
+        let boxs = [];
+        for (let i of this.children) {
+            let { x, y, width, height } = i.style;
+            boxs.push(Box_1.default.createBox(x, y, width, height));
+        }
+        if (!boxs.length)
+            box = Box_1.default.createBox();
+        else {
+            box = Box_1.default.dirtyRect.apply(Box_1.default, boxs);
+            while (boxs.length) {
+                boxs.pop().release();
+            }
+        }
+        return box;
+    }
+    init() {
+        super.init();
+        this.children = [];
+        //监听子对象大小改变
+        this.observeChildSizeChange();
+        //添加子显示对象要重新监听新添加的对象大小改变
+        this.addEventListener(PlugC_1.SysTem.CHILD_ADD, (e) => {
+            e.data.addEventListener(PlugC_1.SysTem.DOM_COMPLETE, this.debounceSize, this);
+        }, this);
+        this.addEventListener(PlugC_1.SysTem.CHILD_REMOVE, (e) => {
+            e.data.removeEventListener(PlugC_1.SysTem.DOM_COMPLETE, this.debounceSize, this);
+        }, this);
+    }
+    /**给子集显示对象添加大小改变监听 */
+    observeChildSizeChange() {
+        for (let i of this.children) {
+            i.addEventListener(PlugC_1.SysTem.DOM_COMPLETE, this.debounceSize, this);
+        }
+    }
+    childSizeChange() {
+        //TODO可以做大小改变要执行的操作
+        this.onResize();
+        this.dispatch(PlugC_1.SysTem.RESIZE);
+    }
+    //节省性能
+    debounceSize() {
+        Global_1.debounce(this.childSizeChange, 50, this);
     }
 }
 exports.default = CDOMContainer;
@@ -330,11 +380,14 @@ class CDocument extends CDOMContainer_1.default {
             }
             if (i.style.clip) {
                 let clip = i.style.clip;
-                if (clip.width <= 0 || clip.height <= 0)
+                if (clip.width <= 0 || clip.height <= 0) {
+                    ctx.restore();
                     continue;
+                }
                 ctx.save();
                 ctx.beginPath();
                 ctx.rect(clip.x, clip.y, clip.width, clip.height);
+                ctx.stroke();
                 ctx.clip();
                 i.render(ctx);
                 if (i["children"]) {
@@ -369,6 +422,7 @@ exports.default = CDocument;
 Object.defineProperty(exports, "__esModule", { value: true });
 const DOMBase_1 = __webpack_require__(/*! ./DOMBase */ "./src/canvasDOM/DOM/DOMBase.ts");
 const ImgLoader_1 = __webpack_require__(/*! ../../sourceModel/loader/ImgLoader */ "./src/sourceModel/loader/ImgLoader.ts");
+const PlugC_1 = __webpack_require__(/*! ../global/PlugC */ "./src/canvasDOM/global/PlugC.ts");
 class CImage extends DOMBase_1.DOMBase {
     get src() {
         return this._src;
@@ -376,11 +430,14 @@ class CImage extends DOMBase_1.DOMBase {
     set src(url) {
         if (this._src != url) {
             this.treasure = null;
+            this.complete = false;
             let loader = ImgLoader_1.ImgLoader.create();
             loader.once(ImgLoader_1.ImgLoader.LOAD_COMPLETE, (e) => {
                 this.treasure = e.data;
                 this.style.width = this.treasure.width;
                 this.style.height = this.treasure.height;
+                this.complete = true;
+                this.dispatch(PlugC_1.SysTem.DOM_COMPLETE);
                 loader.release();
             }, this);
             loader.load(url);
@@ -392,6 +449,7 @@ class CImage extends DOMBase_1.DOMBase {
         // this.treasure = new Image();
     }
     render(ctx) {
+        super.render(ctx);
         let img = this.treasure;
         if (!img)
             return;
@@ -416,6 +474,7 @@ exports.default = CImage;
 Object.defineProperty(exports, "__esModule", { value: true });
 const TransformMatrix_1 = __webpack_require__(/*! ../math/TransformMatrix */ "./src/canvasDOM/math/TransformMatrix.ts");
 const EventDispatch_1 = __webpack_require__(/*! ../event/EventDispatch */ "./src/canvasDOM/event/EventDispatch.ts");
+const PlugC_1 = __webpack_require__(/*! ../global/PlugC */ "./src/canvasDOM/global/PlugC.ts");
 /**
  * 基础DOM
  */
@@ -434,6 +493,8 @@ class DOMBase extends EventDispatch_1.default {
                     target[key] = newData;
                     if (!self.reRender)
                         self.reRender = true;
+                    if (key == "width" || key == "height" || key == "scaleX" || key == "scaleY")
+                        self.onResize();
                     self.proxyHandle(target, key, newData, proxy);
                 }
                 return true;
@@ -477,14 +538,19 @@ class DOMBase extends EventDispatch_1.default {
             skewY: 0,
             scrollerX: 0,
             scrollerY: 0,
+            scrollerWidth: 0,
+            scrollerheight: 0,
             clip: null
         };
         this.reRender = true;
+        this.complete = false;
         this.matrix = TransformMatrix_1.default.createTransFormMatrix();
     }
     reset() {
     }
-    render(ctx) { }
+    render(ctx) {
+        this.dispatch(PlugC_1.SysTem.RENDER);
+    }
     /**
      * 把处于当前坐标系的point点装换为全局的坐标
      * @param point
@@ -521,6 +587,8 @@ class DOMBase extends EventDispatch_1.default {
         }
         return matrix;
     }
+    //大小改变要执行的操作
+    onResize() { }
 }
 exports.DOMBase = DOMBase;
 
@@ -619,6 +687,10 @@ class DOMEvent {
             }
         }.bind(this);
         this.onMove = function (e) {
+            if (!e.buttons) {
+                this.onTapEnd(e);
+                return;
+            }
             let t = this;
             let list = t.getDOM(e);
             let index = list.length - 1;
@@ -904,6 +976,74 @@ exports.TapEvent = TapEvent;
 
 /***/ }),
 
+/***/ "./src/canvasDOM/global/Global.ts":
+/*!****************************************!*\
+  !*** ./src/canvasDOM/global/Global.ts ***!
+  \****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+// import CDocument from "../DOM/CDocument";
+Object.defineProperty(exports, "__esModule", { value: true });
+/**const */
+// export const Document = new CDocument()
+/**
+ * 防抖，延迟一段时间后调用一次
+ * @param fn 执行函数
+ * @param timeout 第一次调用后延迟时间
+ * @param callObj 调用对象
+ * @param args 函数参数
+ */
+let debounceArr = [];
+function debounce(fn, timeout, callObj, ...args) {
+    let index = debounceArr.indexOf(fn);
+    if (index >= 0)
+        return;
+    index = findFirstVoid(debounceArr);
+    debounceArr[index] = fn;
+    setTimeout(() => {
+        fn.call(callObj, ...args);
+        delete debounceArr[index];
+    }, timeout);
+}
+exports.debounce = debounce;
+/**
+ * 防抖，立即调用一次（在规定的时间内只调用一次）
+ * @param fn 执行函数
+ * @param timeout 延迟时间
+ * @param callObj 调用对象
+ * @param args 函数参数
+ */
+let throttleArr = [];
+function throttle(fn, timeout, callObj, ...args) {
+    let index = throttleArr.indexOf(fn);
+    if (index >= 0)
+        return;
+    index = findFirstVoid(throttleArr);
+    throttleArr[index] = fn;
+    fn.call(callObj, ...args);
+    setTimeout(() => {
+        delete throttleArr[index];
+    }, timeout);
+}
+exports.throttle = throttle;
+/**
+ * 获取数组第一个空的或者值为false或者0的下标
+ * @param arr 检查数组
+ */
+function findFirstVoid(arr) {
+    let index = 0;
+    while (arr[index++])
+        ;
+    return --index;
+}
+exports.findFirstVoid = findFirstVoid;
+
+
+/***/ }),
+
 /***/ "./src/canvasDOM/global/PlugC.ts":
 /*!***************************************!*\
   !*** ./src/canvasDOM/global/PlugC.ts ***!
@@ -930,6 +1070,16 @@ var SysTem;
     SysTem["TAP_CANCEL"] = "tapCancel";
     /**移动 */
     SysTem["TAP_MOVE"] = "tapMove";
+    /**显示对象添加到节点 */
+    SysTem["CHILD_ADD"] = "CHILD_ADD";
+    /**显示子对象从显示列表移除 */
+    SysTem["CHILD_REMOVE"] = "CHILD_REMOVE";
+    /**显示对象完成，加载并且正确显示 */
+    SysTem["DOM_COMPLETE"] = "DOM_COMPLETE";
+    /**大小改变 */
+    SysTem["RESIZE"] = "RESIZE";
+    /**帧前事件 */
+    SysTem["RENDER"] = "RENDER";
 })(SysTem = exports.SysTem || (exports.SysTem = {}));
 
 
@@ -1243,8 +1393,8 @@ class TransformMatrix extends Matrix_1.default {
         let { rotate, scaleX, scaleY, anchorX, anchorY, x, y, scrollerX, scrollerY } = style;
         let rotateC = cos(rotate);
         let rotateS = sin(rotate);
-        let tx = x * scaleX;
-        let ty = y * scaleY;
+        let tx = (x + scrollerX) * scaleX;
+        let ty = (y + scrollerY) * scaleY;
         let a = rotateC * scaleX;
         let b = rotateS * scaleX;
         let c = -rotateS * scaleY;
@@ -1258,7 +1408,7 @@ class TransformMatrix extends Matrix_1.default {
             tx = tx + tx - (sx - ancX * scaleX);
             ty = ty + ty - (sy - ancY * scaleY);
         }
-        this.setMatrix(a, b, c, d, tx + scrollerX * scaleX, ty + scrollerY * scaleY);
+        this.setMatrix(a, b, c, d, tx, ty);
         //---------------------------------利用矩阵叠加实现-----------------------------------------
         // let matrix = this.translateMatrix(x - anchorX + scrollerX,y - anchorY + scrollerY);
         // if(rotate != 0) matrix.MatrixMulti(this.rotateMatrix(rotate));
@@ -1380,12 +1530,19 @@ exports.default = TransformMatrix;
 Object.defineProperty(exports, "__esModule", { value: true });
 const PlugC_1 = __webpack_require__(/*! ../global/PlugC */ "./src/canvasDOM/global/PlugC.ts");
 const Box_1 = __webpack_require__(/*! ../math/Box */ "./src/canvasDOM/math/Box.ts");
+const Global_1 = __webpack_require__(/*! ../global/Global */ "./src/canvasDOM/global/Global.ts");
 class scroller {
     constructor() {
         this.horizontal = true; //是否允许水平滚动
         this.vertical = true; //是否允许垂直滚动
         this._scrollerV = 0; //距离顶部的距离
         this._scrollerH = 0; //距离左边的距离
+        this.boundWidth = 0; //容器边界宽度
+        this.boundHeight = 0; //容器边界高度
+        this.scrollerwidth = 0; //滚动内容宽度
+        this.scrollerHeight = 0; //滚动内容高度
+        this.inAnimate = false; //是否处于滚动动画中
+        this.touchTime = 0; //接触滚动列表的时长
         this.sign = {};
     }
     /**垂直滚动 */
@@ -1395,7 +1552,6 @@ class scroller {
             if (this.scrollerObject.children) {
                 for (let i of this.scrollerObject.children) {
                     i.style.scrollerY = v;
-                    // i.style.x = v;
                 }
             }
         }
@@ -1420,7 +1576,30 @@ class scroller {
     /**初始化滚动对象 */
     init(c) {
         this.scrollerObject = c;
-        let { x, y, width, height } = c.style;
+        this.calcBasic();
+    }
+    debounce() {
+        Global_1.debounce(this.calcBasic, 100, this);
+    }
+    calcBasic() {
+        let c = this.scrollerObject;
+        if (!c)
+            return;
+        let { x, y, width, height, scrollerWidth, scrollerheight } = c.style;
+        let contentBox;
+        if (scrollerWidth == 0) {
+            contentBox = c.getContentBox();
+            scrollerWidth = contentBox.x + contentBox.width;
+        }
+        if (scrollerheight == 0) {
+            if (!contentBox)
+                contentBox = c.getContentBox();
+            scrollerheight = contentBox.y + contentBox.height;
+        }
+        this.boundWidth = width;
+        this.boundHeight = height;
+        this.scrollerwidth = scrollerWidth;
+        this.scrollerHeight = scrollerheight;
         c.style.clip = Box_1.default.createBox(x, y, width, height);
         this.initEvent();
     }
@@ -1429,26 +1608,32 @@ class scroller {
         obj.on(PlugC_1.SysTem.TAP_BEGIN, this.onBegin, this);
         obj.on(PlugC_1.SysTem.TAP_MOVE, this.onMove, this);
         obj.on(PlugC_1.SysTem.TAP_CANCEL, this.onCancel, this);
+        //内容大小改变
+        this.scrollerObject.addEventListener(PlugC_1.SysTem.RESIZE, this.debounce, this);
     }
     onMove(e) {
         let [offX, offY] = [e.clientX - this.sign.x, e.clientY - this.sign.y];
-        // console.log(offX, offY,e.clientX,e.clientY )
         this.sign.x = e.clientX;
         this.sign.y = e.clientY;
-        if (this.horizontal && offX != 0) {
+        if (this.scrollerwidth > this.boundWidth && this.horizontal && offX != 0) {
             this.scrollerH += offX;
         }
-        if (this.vertical && offY != 0) {
+        if (this.scrollerHeight > this.boundHeight && this.vertical && offY != 0) {
             this.scrollerV += offY;
         }
     }
     onBegin(e) {
         this.sign.x = e.clientX;
         this.sign.y = e.clientY;
+        this.inAnimate = true;
+        this.touchTime = Date.now();
     }
     onCancel(e) {
-        this.sign.x = null;
-        this.sign.y = null;
+        this.sign.x = 0;
+        this.sign.y = 0;
+        this.inAnimate = false;
+        this.touchTime = Date.now() - this.touchTime;
+        //TODO 实现回弹或者快速滚动
     }
 }
 exports.default = scroller;
@@ -1475,6 +1660,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const CImage_1 = __webpack_require__(/*! ./canvasDOM/DOM/CImage */ "./src/canvasDOM/DOM/CImage.ts");
+const Box_1 = __webpack_require__(/*! ./canvasDOM/math/Box */ "./src/canvasDOM/math/Box.ts");
 const CDocument_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDocument */ "./src/canvasDOM/DOM/CDocument.ts");
 const CDOMContainer_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDOMContainer */ "./src/canvasDOM/DOM/CDOMContainer.ts");
 const GlobalMgr_1 = __webpack_require__(/*! ./mgr/GlobalMgr */ "./src/mgr/GlobalMgr.ts");
@@ -1502,7 +1688,7 @@ class Main {
         let sc = new Scroller_1.default();
         g.style.x = 50;
         g.style.y = 50;
-        g.style.width = g.style.height = 600;
+        g.style.width = g.style.height = 100;
         sc.init(g);
         this.stage.appendChild(g);
         for (let i = 0; i < 5; i++) {
@@ -1510,20 +1696,20 @@ class Main {
             k.src = "./test1.jpeg";
             k.style.x = 100;
             k.style.y = i * 100;
-            g.appendChild(k);
+            // g.appendChild(k)
         }
-        // let i = new CImage();
-        // i.src = "./test1.jpeg"
-        // i.style.x = 300;
-        // i.style.y = 300;
-        // i.style.rotate = 45;
-        // i.style.anchorX = 112;
-        // i.style.anchorY = 84
-        // i.style.clip = Box.createBox(10,10,100,100)
-        // g.appendChild(i);
-        // setInterval(()=>{
-        //     i.style.x++
-        // },50)
+        let i = new CImage_1.default();
+        i.src = "./test1.jpeg";
+        i.style.x = 300;
+        i.style.y = 300;
+        i.style.rotate = 45;
+        i.style.anchorX = 112;
+        i.style.anchorY = 84;
+        i.style.clip = Box_1.default.createBox(10, 10, 100, 100);
+        g.appendChild(i);
+        setInterval(() => {
+            i.style.x++;
+        }, 50);
         // i.addEventListener("tapBegin",(e)=>{console.log(e);e.stopPropagation()},this,true)
         // i.addEventListener("tap",(e)=>{console.log("tap")},this)
         // i.addEventListener("tapMove",(e)=>{console.log("tapMove")},this)
@@ -1557,6 +1743,8 @@ new Main();
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const SourceMgr_1 = __webpack_require__(/*! ../sourceModel/SourceMgr */ "./src/sourceModel/SourceMgr.ts");
+const EventDispatch_1 = __webpack_require__(/*! ../canvasDOM/event/EventDispatch */ "./src/canvasDOM/event/EventDispatch.ts");
+exports.sysEventDispatch = new EventDispatch_1.default();
 //全局管理器
 class GlobalMgr {
     constructor() {

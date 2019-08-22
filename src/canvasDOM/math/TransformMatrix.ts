@@ -63,8 +63,8 @@ export default class TransformMatrix extends Matrix {
         let { rotate, scaleX, scaleY, anchorX, anchorY, x, y, scrollerX, scrollerY } = style;
         let rotateC = cos(rotate);
         let rotateS = sin(rotate);
-        let tx = x * scaleX;
-        let ty = y * scaleY;
+        let tx = (x + scrollerX) * scaleX;
+        let ty = (y + scrollerY) * scaleY;
         let a = rotateC * scaleX;
         let b = rotateS * scaleX;
         let c = -rotateS * scaleY;
@@ -78,7 +78,7 @@ export default class TransformMatrix extends Matrix {
             tx = tx + tx - (sx - ancX * scaleX)
             ty = ty + ty - (sy - ancY * scaleY)
         }
-        this.setMatrix(a, b, c, d, tx + scrollerX * scaleX, ty + scrollerY * scaleY);
+        this.setMatrix(a, b, c, d, tx, ty);
 
 
 

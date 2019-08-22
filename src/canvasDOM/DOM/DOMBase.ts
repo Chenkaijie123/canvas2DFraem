@@ -2,12 +2,15 @@ import TransformMatrix from "../math/TransformMatrix";
 import Point from "../math/Point";
 import EventDispatch from "../event/EventDispatch";
 import Box from "../math/Box";
+import { SysTem } from "../global/PlugC";
 
 /**
  * 基础DOM
  */
 let hashCode: number = 0;
 export abstract class DOMBase extends EventDispatch{
+    //是否完成，包括图片的加载
+    public complete:boolean
     public type: string
     public _style: DOMStyleBase
     public className: string
@@ -37,6 +40,7 @@ export abstract class DOMBase extends EventDispatch{
                 if (target[key] != newData) {
                     target[key] = newData;
                     if (!self.reRender) self.reRender = true;
+                    if(key == "width" || key == "height" || key == "scaleX" || key == "scaleY") self.onResize();
                     self.proxyHandle(target, key, newData, proxy);
 
                 }
@@ -82,9 +86,12 @@ export abstract class DOMBase extends EventDispatch{
             skewY: 0,
             scrollerX:0,
             scrollerY:0,
+            scrollerWidth:0,
+            scrollerheight:0,
             clip:null
         }
         this.reRender = true;
+        this.complete = false;
         this.matrix = TransformMatrix.createTransFormMatrix();
     }
 
@@ -92,7 +99,9 @@ export abstract class DOMBase extends EventDispatch{
 
     }
 
-    public render(ctx: CanvasRenderingContext2D): void { }
+    public render(ctx: CanvasRenderingContext2D): void {
+        this.dispatch(SysTem.RENDER);
+     }
 
     /**
      * 把处于当前坐标系的point点装换为全局的坐标
@@ -134,6 +143,9 @@ export abstract class DOMBase extends EventDispatch{
         }
         return matrix;
     }
+
+    //大小改变要执行的操作
+    protected onResize():void{}
 }
 
 
@@ -154,6 +166,8 @@ export interface DOMStyleBase {
     skewY: number
     scrollerX:number//滚动实现
     scrollerY:number//滚动实现
+    scrollerWidth:number
+    scrollerheight:number
     clip:Box
 }
 

@@ -1,5 +1,6 @@
 import { DOMBase, DOMStyleBase } from "./DOMBase";
 import TransformMatrix from "../math/TransformMatrix";
+import { SysTem } from "../global/PlugC";
 
 export default class CText extends DOMBase{
     public _style: TextStyle
@@ -9,6 +10,8 @@ export default class CText extends DOMBase{
     }
     public set style(v) {
         this._style = v;
+        this.complete = true;
+        this.dispatch(SysTem.DOM_COMPLETE);
     }
     protected init(): void {
         this.style = {
@@ -36,12 +39,15 @@ export default class CText extends DOMBase{
             text:"",
             textAlign:"left",
             fontStyle:"normal",
+            scrollerWidth:0,
+            scrollerheight:0,
             clip:null
         }
         this.reRender = true;
         this.matrix = TransformMatrix.createTransFormMatrix();
     }
     public render(ctx:CanvasRenderingContext2D):void{
+        super.render(ctx);
         let style = `${this.style.fontStyle} normal ${this.style.bold?"bold":"normal"} ${this.style.fontSize}px ${this.style.fontFamily}`
         if(ctx.font != style)ctx.font = style;
         let color = `#${this.style.textColor.toString(16)}`;

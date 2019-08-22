@@ -1,4 +1,7 @@
 import { SourceMgr } from "../sourceModel/SourceMgr";
+import EventDispatch from "../canvasDOM/event/EventDispatch";
+
+export const sysEventDispatch = new EventDispatch();
 
 export let resource:SourceMgr
 //全局管理器
