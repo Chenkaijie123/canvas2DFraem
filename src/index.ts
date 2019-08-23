@@ -7,6 +7,8 @@ import { GlobalMgr } from "./mgr/GlobalMgr";
 import { FileLoader } from "./sourceModel/loader/FileLoader";
 import scroller from "./canvasDOM/ui/Scroller";
 import Observe from "./DataStruct/Oberserve/Oberserve";
+import CText from "./canvasDOM/DOM/CText";
+import { SysTem } from "./canvasDOM/global/PlugC";
 
 
 class Main {
@@ -22,7 +24,6 @@ class Main {
     private start():void{
         let requestAnimationFrame = window.requestAnimationFrame;
         let loop = ()=>{
-            // this.stage.sysRender();
             this.stage.renderElement();
             requestAnimationFrame(loop);
         }
@@ -35,30 +36,30 @@ class Main {
         let sc = new scroller()
         g.style.x = 50
         g.style.y = 50
-        g.style.width = g.style.height = 100
+        g.style.width = g.style.height = 600
         sc.init(g)
         this.stage.appendChild(g);
-        for(let i = 0 ;i < 5;i++){
+        for(let i = 0 ;i < 10;i++){
             let k = new CImage();
             k.src = "./test1.jpeg"
-            k.style.x =  100;
+            k.style.x =  0;
             k.style.y = i *100;
-            // g.appendChild(k)
+            g.appendChild(k)
         }
 
 
-        let i = new CImage();
-        i.src = "./test1.jpeg"
-        i.style.x = 300;
-        i.style.y = 300;
-        i.style.rotate = 45;
-        i.style.anchorX = 112;
-        i.style.anchorY = 84
-        i.style.clip = Box.createBox(10,10,100,100)
-        g.appendChild(i);
-        setInterval(()=>{
-            i.style.x++
-        },50)
+        // let i = new CImage();
+        // i.src = "./test1.jpeg"
+        // i.style.x = 0;
+        // i.style.y = 0;
+        // i.style.rotate = 45;
+        // i.style.anchorX = 112;
+        // i.style.anchorY = 84
+        // i.style.clip = Box.createBox(10,10,100,100)
+        // this.stage.appendChild(i);
+        // setInterval(()=>{
+        //     i.style.x++
+        // },50)
         // i.addEventListener("tapBegin",(e)=>{console.log(e);e.stopPropagation()},this,true)
         // i.addEventListener("tap",(e)=>{console.log("tap")},this)
         // i.addEventListener("tapMove",(e)=>{console.log("tapMove")},this)
@@ -67,6 +68,7 @@ class Main {
         let w = Observe.watch(a)
         w.name.firstName = "ccc"
         console.log(w.name)
+
        
 
     }

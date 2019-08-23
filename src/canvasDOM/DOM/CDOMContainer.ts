@@ -26,13 +26,13 @@ export default class CDOMContainer extends DOMBase implements DOMContainer {
     /**
      * 获取子内容边界
      * 该方法会忽略孙对象及更深对象的边界，仅仅是子对象的宽度边界
+     * @returns Box对象，参考系是全局
      */
     public getContentBox(): Box {
         let box: Box;
         let boxs :Box[]= [];
         for (let i of this.children) {
-            let { x, y, width, height } = i.style;
-            boxs.push(Box.createBox(x, y, width, height));
+            boxs.push(i.getBoundBox());
         }
         if (!boxs.length) box = Box.createBox();
         else{
@@ -75,4 +75,6 @@ export default class CDOMContainer extends DOMBase implements DOMContainer {
     private debounceSize():void{
         debounce(this.childSizeChange,50,this);
     }
+
+
 }

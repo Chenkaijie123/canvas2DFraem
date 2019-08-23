@@ -50,7 +50,7 @@ export default class EventDispatch {
 
 
     private checkIsTapEvt(type:string):boolean{
-        return type == "tapBegin" || type == "tapEnd" || type == "tapCancel" || type == "tapMove";
+        return type == "tapBegin" || type == "tapEnd" || type == "tapCancel" || type == "tapMove" || type == "tap";
     }
 
     public addEventListener(type: string, fn: (e?: PlugC.Event) => any, caller: any, useCapture: boolean = false): void {

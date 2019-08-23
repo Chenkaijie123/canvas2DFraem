@@ -20,6 +20,7 @@ export default class CDocument extends CDOMContainer {
         new DOMEvent(this);
         document.body.appendChild(canvas);
         this.context = canvas.getContext("2d");
+        this.context.textBaseline = "hanging";
     }
 
     public init(): void {

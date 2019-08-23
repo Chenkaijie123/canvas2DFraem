@@ -112,4 +112,12 @@ export default class Box extends Matrix {
         let y1: number = Math.max(...box.map((v) => v.y + v.height));
         return Box.createBox(x0, y0, x1 - x0, y1 - y0);
     }
+
+    public toString():string{
+        return `[${this.x},${this.y},${this.width},${this.height}]`
+    }
+
+    // public valueOf():string{
+    //     return this.toString();
+    // }
 }

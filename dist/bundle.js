@@ -225,13 +225,13 @@ class CDOMContainer extends DOMBase_1.DOMBase {
     /**
      * 获取子内容边界
      * 该方法会忽略孙对象及更深对象的边界，仅仅是子对象的宽度边界
+     * @returns Box对象，参考系是全局
      */
     getContentBox() {
         let box;
         let boxs = [];
         for (let i of this.children) {
-            let { x, y, width, height } = i.style;
-            boxs.push(Box_1.default.createBox(x, y, width, height));
+            boxs.push(i.getBoundBox());
         }
         if (!boxs.length)
             box = Box_1.default.createBox();
@@ -304,6 +304,7 @@ class CDocument extends CDOMContainer_1.default {
         new DOMEvent_1.default(this);
         document.body.appendChild(canvas);
         this.context = canvas.getContext("2d");
+        this.context.textBaseline = "hanging";
     }
     init() {
         super.init();
@@ -473,7 +474,9 @@ exports.default = CImage;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const TransformMatrix_1 = __webpack_require__(/*! ../math/TransformMatrix */ "./src/canvasDOM/math/TransformMatrix.ts");
+const Point_1 = __webpack_require__(/*! ../math/Point */ "./src/canvasDOM/math/Point.ts");
 const EventDispatch_1 = __webpack_require__(/*! ../event/EventDispatch */ "./src/canvasDOM/event/EventDispatch.ts");
+const Box_1 = __webpack_require__(/*! ../math/Box */ "./src/canvasDOM/math/Box.ts");
 const PlugC_1 = __webpack_require__(/*! ../global/PlugC */ "./src/canvasDOM/global/PlugC.ts");
 /**
  * 基础DOM
@@ -493,7 +496,7 @@ class DOMBase extends EventDispatch_1.default {
                     target[key] = newData;
                     if (!self.reRender)
                         self.reRender = true;
-                    if (key == "width" || key == "height" || key == "scaleX" || key == "scaleY")
+                    if (key == "width" || key == "height" || key == "scaleX" || key == "scaleY" || key == "x" || key == "y")
                         self.onResize();
                     self.proxyHandle(target, key, newData, proxy);
                 }
@@ -552,16 +555,29 @@ class DOMBase extends EventDispatch_1.default {
         this.dispatch(PlugC_1.SysTem.RENDER);
     }
     /**
-     * 把处于当前坐标系的point点装换为全局的坐标
+     * 把处于全局的坐标的point点装换为当前坐标系
      * @param point
      */
-    toGlobal(point) {
+    toLocal(point) {
         let matrix = this.getMatrixMul();
         matrix.invertMartix();
         matrix.transFormPoint(point);
         matrix.release();
         return point;
     }
+    /**
+     * 把处于当前坐标系的point点装换为全局的坐标
+     * @param point
+     */
+    // public toGlobals(point: Point[]): Point[]{
+    //     let matrix = this.getMatrixMul();
+    //     matrix.invertMartix();
+    //     for(let i of point){
+    //         matrix.transFormPoint(i);
+    //     }
+    //     matrix.release();
+    //     return point;
+    // }
     contain(_x, _y) {
         let { width, height } = this.style;
         return _x >= 0 && width >= _x && _y >= 0 && height >= _y;
@@ -588,7 +604,35 @@ class DOMBase extends EventDispatch_1.default {
         return matrix;
     }
     //大小改变要执行的操作
-    onResize() { }
+    onResize() {
+        this.dispatch(PlugC_1.SysTem.DOM_COMPLETE);
+    }
+    /**获取刚好包裹该显示对象的盒子 */
+    getBoundBox() {
+        let { x, y, width, height, clip } = this.style;
+        //裁剪区域按照原大小算，故注释掉
+        // if(clip){
+        //     x += clip.x;
+        //     y += clip.y;
+        //     width = clip.width;
+        //     height = clip.height;
+        // }
+        let topPoint = [
+            Point_1.default.createPiont(x, y),
+            Point_1.default.createPiont(x + width, y),
+            Point_1.default.createPiont(x, y + height),
+            Point_1.default.createPiont(x + width, y + height),
+        ];
+        // this.toGlobals(topPoint)
+        let maxX = Math.max(topPoint[0].x, topPoint[1].x, topPoint[2].x, topPoint[3].x);
+        let minX = Math.min(topPoint[0].x, topPoint[1].x, topPoint[2].x, topPoint[3].x);
+        let maxY = Math.max(topPoint[0].y, topPoint[1].y, topPoint[2].y, topPoint[3].y);
+        let minY = Math.min(topPoint[0].y, topPoint[1].y, topPoint[2].y, topPoint[3].y);
+        while (topPoint.length) {
+            topPoint.pop().release();
+        }
+        return Box_1.default.createBox(minX, minY, maxX - minX, maxY - minY);
+    }
 }
 exports.DOMBase = DOMBase;
 
@@ -734,7 +778,7 @@ class DOMEvent {
         this.document.iterator(this.document.children, (v) => {
             if (v.tapCount == 0 || !v.style.visible || !v.style.alpha)
                 return;
-            v.toGlobal(p.setPoint(x, y));
+            v.toLocal(p.setPoint(x, y));
             let res = v.contain(p.x, p.y);
             if (res) {
                 list.push(v);
@@ -860,7 +904,7 @@ class EventDispatch {
         return e;
     }
     checkIsTapEvt(type) {
-        return type == "tapBegin" || type == "tapEnd" || type == "tapCancel" || type == "tapMove";
+        return type == "tapBegin" || type == "tapEnd" || type == "tapCancel" || type == "tapMove" || type == "tap";
     }
     addEventListener(type, fn, caller, useCapture = false) {
         if (this.hasEvent(type, fn, caller))
@@ -1070,6 +1114,8 @@ var SysTem;
     SysTem["TAP_CANCEL"] = "tapCancel";
     /**移动 */
     SysTem["TAP_MOVE"] = "tapMove";
+    /**点击 */
+    SysTem["TAP"] = "tap";
     /**显示对象添加到节点 */
     SysTem["CHILD_ADD"] = "CHILD_ADD";
     /**显示子对象从显示列表移除 */
@@ -1192,6 +1238,9 @@ class Box extends Matrix_1.default {
         let x1 = Math.max(...box.map((v) => v.x + v.width));
         let y1 = Math.max(...box.map((v) => v.y + v.height));
         return Box.createBox(x0, y0, x1 - x0, y1 - y0);
+    }
+    toString() {
+        return `[${this.x},${this.y},${this.width},${this.height}]`;
     }
 }
 exports.default = Box;
@@ -1565,7 +1614,7 @@ class scroller {
             this._scrollerH = v;
             if (this.scrollerObject.children) {
                 for (let i of this.scrollerObject.children) {
-                    i.style.scrollerY = v;
+                    i.style.scrollerX = v;
                 }
             }
         }
@@ -1585,7 +1634,7 @@ class scroller {
         let c = this.scrollerObject;
         if (!c)
             return;
-        let { x, y, width, height, scrollerWidth, scrollerheight } = c.style;
+        let { width, height, scrollerWidth, scrollerheight } = c.style;
         let contentBox;
         if (scrollerWidth == 0) {
             contentBox = c.getContentBox();
@@ -1600,7 +1649,8 @@ class scroller {
         this.boundHeight = height;
         this.scrollerwidth = scrollerWidth;
         this.scrollerHeight = scrollerheight;
-        c.style.clip = Box_1.default.createBox(x, y, width, height);
+        //默认整个容器作为滚动单位
+        c.style.clip = Box_1.default.createBox(0, 0, width, height);
         this.initEvent();
     }
     initEvent() {
@@ -1621,6 +1671,7 @@ class scroller {
         if (this.scrollerHeight > this.boundHeight && this.vertical && offY != 0) {
             this.scrollerV += offY;
         }
+        console.log("x: " + offX, "y: " + offY);
     }
     onBegin(e) {
         this.sign.x = e.clientX;
@@ -1660,7 +1711,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const CImage_1 = __webpack_require__(/*! ./canvasDOM/DOM/CImage */ "./src/canvasDOM/DOM/CImage.ts");
-const Box_1 = __webpack_require__(/*! ./canvasDOM/math/Box */ "./src/canvasDOM/math/Box.ts");
 const CDocument_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDocument */ "./src/canvasDOM/DOM/CDocument.ts");
 const CDOMContainer_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDOMContainer */ "./src/canvasDOM/DOM/CDOMContainer.ts");
 const GlobalMgr_1 = __webpack_require__(/*! ./mgr/GlobalMgr */ "./src/mgr/GlobalMgr.ts");
@@ -1688,28 +1738,28 @@ class Main {
         let sc = new Scroller_1.default();
         g.style.x = 50;
         g.style.y = 50;
-        g.style.width = g.style.height = 100;
+        g.style.width = g.style.height = 600;
         sc.init(g);
         this.stage.appendChild(g);
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 10; i++) {
             let k = new CImage_1.default();
             k.src = "./test1.jpeg";
-            k.style.x = 100;
+            k.style.x = 0;
             k.style.y = i * 100;
-            // g.appendChild(k)
+            g.appendChild(k);
         }
-        let i = new CImage_1.default();
-        i.src = "./test1.jpeg";
-        i.style.x = 300;
-        i.style.y = 300;
-        i.style.rotate = 45;
-        i.style.anchorX = 112;
-        i.style.anchorY = 84;
-        i.style.clip = Box_1.default.createBox(10, 10, 100, 100);
-        g.appendChild(i);
-        setInterval(() => {
-            i.style.x++;
-        }, 50);
+        // let i = new CImage();
+        // i.src = "./test1.jpeg"
+        // i.style.x = 0;
+        // i.style.y = 0;
+        // i.style.rotate = 45;
+        // i.style.anchorX = 112;
+        // i.style.anchorY = 84
+        // i.style.clip = Box.createBox(10,10,100,100)
+        // this.stage.appendChild(i);
+        // setInterval(()=>{
+        //     i.style.x++
+        // },50)
         // i.addEventListener("tapBegin",(e)=>{console.log(e);e.stopPropagation()},this,true)
         // i.addEventListener("tap",(e)=>{console.log("tap")},this)
         // i.addEventListener("tapMove",(e)=>{console.log("tapMove")},this)

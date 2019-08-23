@@ -40,7 +40,7 @@ export default class scroller {
             this._scrollerH = v;
             if (this.scrollerObject.children) {
                 for (let i of this.scrollerObject.children) {
-                    i.style.scrollerY = v;
+                    i.style.scrollerX = v;
                 }
             }
         }
@@ -62,7 +62,7 @@ export default class scroller {
     private calcBasic():void{
         let c = this.scrollerObject;
         if(!c) return;
-        let { x, y, width, height ,scrollerWidth,scrollerheight} = c.style;
+        let {width, height ,scrollerWidth,scrollerheight} = c.style;
         let contentBox:Box;
         if(scrollerWidth == 0) {
             contentBox = c.getContentBox();
@@ -76,7 +76,8 @@ export default class scroller {
         this.boundHeight = height;
         this.scrollerwidth = scrollerWidth;
         this.scrollerHeight = scrollerheight;
-        c.style.clip = Box.createBox(x, y, width, height);
+        //默认整个容器作为滚动单位
+        c.style.clip = Box.createBox(0, 0, width, height);
         this.initEvent();
     }
 
@@ -99,7 +100,6 @@ export default class scroller {
         if (this.scrollerHeight > this.boundHeight && this.vertical && offY != 0) {
             this.scrollerV += offY;
         }
-
     }
 
     private onBegin(e: TapEvent): void {

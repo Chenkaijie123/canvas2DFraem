@@ -13,6 +13,8 @@ export enum SysTem{
     TAP_CANCEL = "tapCancel",
     /**移动 */
     TAP_MOVE = "tapMove",
+    /**点击 */
+    TAP = "tap",
 
 
      /**显示对象添加到节点 */
