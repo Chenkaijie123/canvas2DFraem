@@ -86,6 +86,47 @@
 /************************************************************************/
 /******/ ({
 
+/***/ "./src/DataStruct/Oberserve/FnHandle.ts":
+/*!**********************************************!*\
+  !*** ./src/DataStruct/Oberserve/FnHandle.ts ***!
+  \**********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+let pool = [];
+class FnHandle {
+    constructor(fn, caller, ...args) {
+        this.init(fn, caller, ...args);
+    }
+    init(fn, caller, ...args) {
+        if (!fn && !caller)
+            return;
+        this.action = fn;
+        this.caller = caller;
+        this.args = args;
+    }
+    release() {
+        this.action = this.caller = this.args = null;
+        pool.push(this);
+    }
+    run(...args) {
+        return this.action.apply(this.caller, this.args.concat(args));
+    }
+    static create(fn, caller, ...args) {
+        let handle = pool.pop() || new FnHandle();
+        if (fn && caller)
+            handle.init(fn, caller, ...args);
+        return handle;
+    }
+}
+exports.default = FnHandle;
+
+
+/***/ }),
+
 /***/ "./src/DataStruct/Oberserve/Oberserve.ts":
 /*!***********************************************!*\
   !*** ./src/DataStruct/Oberserve/Oberserve.ts ***!
@@ -1126,6 +1167,8 @@ var SysTem;
     SysTem["RESIZE"] = "RESIZE";
     /**帧前事件 */
     SysTem["RENDER"] = "RENDER";
+    /**缓动动画移除 */
+    SysTem["TWEEN_REMOVE"] = "TWEEN_REMOVE";
 })(SysTem = exports.SysTem || (exports.SysTem = {}));
 
 
@@ -1671,7 +1714,6 @@ class scroller {
         if (this.scrollerHeight > this.boundHeight && this.vertical && offY != 0) {
             this.scrollerV += offY;
         }
-        console.log("x: " + offX, "y: " + offY);
     }
     onBegin(e) {
         this.sign.x = e.clientX;
@@ -1711,12 +1753,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const CImage_1 = __webpack_require__(/*! ./canvasDOM/DOM/CImage */ "./src/canvasDOM/DOM/CImage.ts");
+const Box_1 = __webpack_require__(/*! ./canvasDOM/math/Box */ "./src/canvasDOM/math/Box.ts");
 const CDocument_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDocument */ "./src/canvasDOM/DOM/CDocument.ts");
 const CDOMContainer_1 = __webpack_require__(/*! ./canvasDOM/DOM/CDOMContainer */ "./src/canvasDOM/DOM/CDOMContainer.ts");
 const GlobalMgr_1 = __webpack_require__(/*! ./mgr/GlobalMgr */ "./src/mgr/GlobalMgr.ts");
 const FileLoader_1 = __webpack_require__(/*! ./sourceModel/loader/FileLoader */ "./src/sourceModel/loader/FileLoader.ts");
 const Scroller_1 = __webpack_require__(/*! ./canvasDOM/ui/Scroller */ "./src/canvasDOM/ui/Scroller.ts");
 const Oberserve_1 = __webpack_require__(/*! ./DataStruct/Oberserve/Oberserve */ "./src/DataStruct/Oberserve/Oberserve.ts");
+const Tween_1 = __webpack_require__(/*! ./tween/Tween */ "./src/tween/Tween.ts");
 class Main {
     constructor() {
         this.stage = new CDocument_1.default();
@@ -1726,12 +1770,12 @@ class Main {
     }
     start() {
         let requestAnimationFrame = window.requestAnimationFrame;
-        let loop = () => {
-            // this.stage.sysRender();
+        let loop = (t) => {
+            GlobalMgr_1.TickerIns.run(t);
             this.stage.renderElement();
             requestAnimationFrame(loop);
         };
-        loop();
+        loop(0);
     }
     test() {
         let g = new CDOMContainer_1.default();
@@ -1748,15 +1792,16 @@ class Main {
             k.style.y = i * 100;
             g.appendChild(k);
         }
-        // let i = new CImage();
-        // i.src = "./test1.jpeg"
-        // i.style.x = 0;
-        // i.style.y = 0;
-        // i.style.rotate = 45;
-        // i.style.anchorX = 112;
-        // i.style.anchorY = 84
-        // i.style.clip = Box.createBox(10,10,100,100)
-        // this.stage.appendChild(i);
+        let i = new CImage_1.default();
+        i.src = "./test1.jpeg";
+        i.style.x = 0;
+        i.style.y = 0;
+        i.style.rotate = 45;
+        i.style.anchorX = 112;
+        i.style.anchorY = 84;
+        i.style.clip = Box_1.default.createBox(10, 10, 100, 100);
+        this.stage.appendChild(i);
+        Tween_1.default.get(i.style).to({ x: 500, y: 500 }, 5000, "easeOutQuart");
         // setInterval(()=>{
         //     i.style.x++
         // },50)
@@ -1794,17 +1839,100 @@ new Main();
 Object.defineProperty(exports, "__esModule", { value: true });
 const SourceMgr_1 = __webpack_require__(/*! ../sourceModel/SourceMgr */ "./src/sourceModel/SourceMgr.ts");
 const EventDispatch_1 = __webpack_require__(/*! ../canvasDOM/event/EventDispatch */ "./src/canvasDOM/event/EventDispatch.ts");
-exports.sysEventDispatch = new EventDispatch_1.default();
+const Ticker_1 = __webpack_require__(/*! ./Ticker */ "./src/mgr/Ticker.ts");
+const Tween_1 = __webpack_require__(/*! ../tween/Tween */ "./src/tween/Tween.ts");
+let TweenIns;
 //全局管理器
 class GlobalMgr {
     constructor() {
         this.init();
     }
     init() {
+        exports.sysEventDispatch = new EventDispatch_1.default();
         exports.resource = new SourceMgr_1.SourceMgr();
+        exports.TickerIns = new Ticker_1.default();
+        TweenIns = new Tween_1.default();
     }
 }
 exports.GlobalMgr = GlobalMgr;
+
+
+/***/ }),
+
+/***/ "./src/mgr/Ticker.ts":
+/*!***************************!*\
+  !*** ./src/mgr/Ticker.ts ***!
+  \***************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const FnHandle_1 = __webpack_require__(/*! ../DataStruct/Oberserve/FnHandle */ "./src/DataStruct/Oberserve/FnHandle.ts");
+const Global_1 = __webpack_require__(/*! ../canvasDOM/global/Global */ "./src/canvasDOM/global/Global.ts");
+/**
+ * 添加帧执行事假
+ * 当添加的执行函数返回值为false时，该函数会移除出循环执行队列
+ */
+class Ticker {
+    constructor() {
+        this._callMap = [];
+        this.callMap = new Proxy(this._callMap, {
+            deleteProperty(target, key) {
+                target[key].release();
+                delete target[key];
+                return true;
+            }
+        });
+    }
+    /**
+     * 添加循环执行函数
+     * 返回该函数在循环队列中的id
+     * @param fn
+     * @returns number
+     */
+    add(fn) {
+        if (this.has(fn))
+            return;
+        let id = Global_1.findFirstVoid(this.callMap);
+        this.callMap[id] = fn;
+        return id;
+    }
+    /**
+     * 移除循环执行函数
+     * @param target
+     */
+    remove(target) {
+        if (target instanceof FnHandle_1.default) {
+            let id = this.callMap.indexOf(target);
+            if (id >= 0)
+                delete this.callMap[id];
+        }
+        else if (typeof target == "number") {
+            if (target >= 0)
+                delete this.callMap[target];
+        }
+        else {
+            throw "the remove target is not a right value!";
+        }
+    }
+    /**
+     * @private
+     */
+    run(t) {
+        let idx = 0;
+        for (let i of this.callMap) {
+            if (i && i.run(t) == false)
+                delete this.callMap[idx];
+            idx++;
+        }
+    }
+    has(fn) {
+        return this.callMap.indexOf(fn) >= 0;
+    }
+}
+exports.default = Ticker;
 
 
 /***/ }),
@@ -2064,6 +2192,168 @@ ImgLoader.LOAD_COMPLETE = "LOAD_COMPLETE";
 ImgLoader.LOAD_ERROR = "LOAD_ERROR";
 ImgLoader.MAX_CACHE_COUNT = 50; //最大缓存加载器个数
 exports.ImgLoader = ImgLoader;
+
+
+/***/ }),
+
+/***/ "./src/tween/CubicBezier.ts":
+/*!**********************************!*\
+  !*** ./src/tween/CubicBezier.ts ***!
+  \**********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.easeOutQuart = [0.165, 0.84, 0.44, 1];
+class CubicBezier {
+    /**
+     * 获取贝塞尔参数
+     * @param begin 开始值
+     * @param end 结束值
+     * @param time 变化时间
+     * @param type 变化类型，控制贝塞尔曲线
+     */
+    getBezierargument(begin, end, time, type) {
+        let args;
+        switch (type) {
+            case "easeOutQuart":
+                args = exports.easeOutQuart;
+                break;
+        }
+        let diff = end - begin;
+        return [
+            { x: 0, y: 0 },
+            { x: args[0] * time, y: args[1] * diff },
+            { x: args[2] * time, y: args[3] * diff },
+            { x: time, y: diff }
+        ];
+    }
+}
+/**
+ * 计算贝塞尔曲线
+ * @param cp 贝塞尔控制点
+ * @param t 时间
+ */
+function PointOnCubicBezier(cp, t) {
+    var ax, bx, cx;
+    var ay, by, cy;
+    var tSquared, tCubed;
+    var result = {};
+    /*計算多項式係數*/
+    cx = 3.0 * (cp[1].x - cp[0].x);
+    bx = 3.0 * (cp[2].x - cp[1].x) - cx;
+    ax = cp[3].x - cp[0].x - cx - bx;
+    cy = 3.0 * (cp[1].y - cp[0].y);
+    by = 3.0 * (cp[2].y - cp[1].y) - cy;
+    ay = cp[3].y - cp[0].y - cy - by;
+    /*計算位於參數值t的曲線點*/
+    tSquared = t * t;
+    tCubed = tSquared * t;
+    result.x = (ax * tCubed) + (bx * tSquared) + (cx * t) + cp[0].x;
+    result.y = (ay * tCubed) + (by * tSquared) + (cy * t) + cp[0].y;
+    return result;
+}
+exports.PointOnCubicBezier = PointOnCubicBezier;
+exports.CubicBezierIns = new CubicBezier();
+
+
+/***/ }),
+
+/***/ "./src/tween/Tween.ts":
+/*!****************************!*\
+  !*** ./src/tween/Tween.ts ***!
+  \****************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const TweenProxy_1 = __webpack_require__(/*! ./TweenProxy */ "./src/tween/TweenProxy.ts");
+const Global_1 = __webpack_require__(/*! ../canvasDOM/global/Global */ "./src/canvasDOM/global/Global.ts");
+const GlobalMgr_1 = __webpack_require__(/*! ../mgr/GlobalMgr */ "./src/mgr/GlobalMgr.ts");
+const PlugC_1 = __webpack_require__(/*! ../canvasDOM/global/PlugC */ "./src/canvasDOM/global/PlugC.ts");
+class Tween {
+    constructor() {
+        GlobalMgr_1.sysEventDispatch.addEventListener(PlugC_1.SysTem.TWEEN_REMOVE, (e) => {
+            let index = Tween.TweenList.indexOf(e.data);
+            if (index >= 0)
+                delete Tween.TweenList[index];
+        }, this);
+    }
+    static get(o) {
+        let t = TweenProxy_1.default.create().get(o);
+        Tween.TweenList[Global_1.findFirstVoid(Tween.TweenList)] = t;
+        return t;
+    }
+}
+Tween.TweenList = [];
+exports.default = Tween;
+
+
+/***/ }),
+
+/***/ "./src/tween/TweenProxy.ts":
+/*!*********************************!*\
+  !*** ./src/tween/TweenProxy.ts ***!
+  \*********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const CubicBezier_1 = __webpack_require__(/*! ./CubicBezier */ "./src/tween/CubicBezier.ts");
+const FnHandle_1 = __webpack_require__(/*! ../DataStruct/Oberserve/FnHandle */ "./src/DataStruct/Oberserve/FnHandle.ts");
+const GlobalMgr_1 = __webpack_require__(/*! ../mgr/GlobalMgr */ "./src/mgr/GlobalMgr.ts");
+const PlugC_1 = __webpack_require__(/*! ../canvasDOM/global/PlugC */ "./src/canvasDOM/global/PlugC.ts");
+let pool = [];
+class TweenProxy {
+    constructor() {
+        this.prevent = false;
+    }
+    get(target) {
+        this.target = target;
+        return this;
+    }
+    to(props, time, type) {
+        for (let k in props) {
+            let start = this.target[k];
+            let end = props[k];
+            let args = CubicBezier_1.CubicBezierIns.getBezierargument(start, end, time, type);
+            let fn = FnHandle_1.default.create((t) => {
+                if (this.start == void 0) {
+                    this.start = t;
+                    this.end = t + time;
+                }
+                let p = CubicBezier_1.PointOnCubicBezier(args, t);
+                if (this.prevent || p.x >= this.end) {
+                    this.release();
+                    return false;
+                }
+                this.target[k] = p.y;
+                return true;
+            }, this);
+            GlobalMgr_1.TickerIns.add(fn);
+        }
+        return this;
+    }
+    stop() {
+        this.prevent = true;
+    }
+    release() {
+        this.prevent = false;
+        this.target = this.start = this.end = void 0;
+        GlobalMgr_1.sysEventDispatch.dispatch(PlugC_1.SysTem.TWEEN_REMOVE, this);
+        pool.push(this);
+    }
+    static create() {
+        return pool.pop() || new TweenProxy();
+    }
+}
+exports.default = TweenProxy;
 
 
 /***/ })

@@ -19,8 +19,8 @@ export default class FnHandle {
         pool.push(this);
     }
 
-    public run(): void {
-        this.action.apply(this.caller, this.args)
+    public run(...args:any[]): any {
+        return this.action.apply(this.caller, this.args.concat(args))
     }
 
     static create(fn?: Function, caller?: any, ...args: any[]): FnHandle {

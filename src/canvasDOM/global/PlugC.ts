@@ -27,4 +27,8 @@ export enum SysTem{
     RESIZE = "RESIZE",
     /**帧前事件 */
     RENDER = "RENDER",
+
+
+    /**缓动动画移除 */
+    TWEEN_REMOVE = "TWEEN_REMOVE",
 }
